@@ -1,0 +1,21 @@
+# vscode
+.vscode
+
+# jet brains
+**/.idea/
+**/cmake-build-release/
+**/cmake-build-debug/
+
+# build dir
+**/build/
+**/built/
+
+# generated dir
+**/generated
+
+# python
+**/venv/
+**/__pycache__
+
+# mac os
+.DS_Store
