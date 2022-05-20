@@ -1,4 +1,4 @@
-# Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+# Copyright 2022 Alibaba Group Holding Limited. All Rights Reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Logical target for all demos.
-add_custom_target (demos)
+add_custom_target (tests)
 
-macro (hiactor_add_demo name)
+find_package (Boost COMPONENTS unit_test_framework REQUIRED)
+
+macro (hiactor_add_test name)
   set (args ${ARGN})
 
   cmake_parse_arguments (
@@ -25,27 +26,42 @@ macro (hiactor_add_demo name)
     "SOURCES"
     ${args})
 
-  set (target ${name}_demo)
+  set (target ${name})
   add_executable (${target} ${parsed_args_SOURCES})
 
   target_include_directories (${target}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
   target_link_libraries (${target}
-    PRIVATE hiactor_private)
+    PRIVATE hiactor_private
+    PUBLIC 
+    Boost::unit_test_framework
+    )
 
   set_target_properties (${target}
     PROPERTIES
     OUTPUT_NAME ${name})
 
-  add_dependencies (demos ${target})
 endmacro ()
 
-add_subdirectory (actor_samples)
-add_subdirectory (bank_account)
-add_subdirectory (thread_pool_sample)
+hiactor_add_test (actor_test
+    SOURCES
+    actor_test.cc
+    actor_harness.cc
+    actor_harness.hh
+)
 
-# gpu_resource_pool_sample is disable by default when CUDA environments is missing.
-if (Hiactor_GPU_ENABLE)
-  add_subdirectory (gpu_pool_sample)
-endif()
+hiactor_add_test (alien_pool_test
+    SOURCES
+    alien_pool_test.cc
+)
+  
+hiactor_add_test (thread_pool_test
+    SOURCES
+    thread_pool_test.cc
+)
+
+hiactor_add_test (column_batch_test
+    SOURCES
+    column_batch_test.cc
+)
