@@ -66,7 +66,7 @@ struct actor_client {
             if (__builtin_expect(res_fut.failed(), false)) {
               return seastar::make_exception_future<retT>(res_fut.get_exception());
             }
-            auto res_msg = res_fut.get0();
+            auto* res_msg = res_fut.get0();
             if (!res_msg->hdr.from_network) {
                 auto res_data = std::move(reinterpret_cast<actor_message_with_payload<retT>*>(res_msg)->data);
                 delete res_msg;

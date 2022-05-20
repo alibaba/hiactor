@@ -101,6 +101,7 @@ def check_and_parse_actor_method(class_name, node):
 
 
 def traverse_actor_methods(node):
+    has_base = False
     derive_from_template = False
     frontiers = [node]
     methods = []
@@ -114,12 +115,13 @@ def traverse_actor_methods(node):
                         methods.append(check_and_parse_actor_method(node.spelling, child))
                         method_names.append(child.spelling)
                 elif child.kind == CursorKind.CXX_BASE_SPECIFIER:
+                    has_base = True
                     if is_template_actor_type(child.get_definition()):
                         derive_from_template = True
                     else:
                         next_frontiers.append(child.get_definition())
         frontiers = next_frontiers
-    if not derive_from_template:
+    if has_base and (not derive_from_template):
         raise RuntimeError("Class {} is not derived from an template actor\n".format(node.spelling))
 
     def get_key(method):

@@ -245,14 +245,19 @@ seastar::future<> root_actor_group::cancel_scope_request(const scope_builder& sc
             auto src_sid = global_shard_id();
             auto pr_id = _response_pr_manager.acquire_pr();
             auto* msg = make_request_message(dst_addr, 0, src_sid, pr_id, m_type);
-            return seastar::when_all_succeed(
+            return seastar::when_all(
                 actor_engine().send(msg), actor_engine()._response_pr_manager.get_future(pr_id)
-            ).then_wrapped([pr_id](seastar::future<actor_message*> fut) {
+            ).then([pr_id](std::tuple<seastar::future<>, seastar::future<actor_message*>> tup) {
                 actor_engine()._response_pr_manager.remove_pr(pr_id);
-                if (__builtin_expect(fut.failed(), false)) {
-                    return seastar::make_exception_future<>(fut.get_exception());
+                auto& send_fut = std::get<0>(tup);
+                if (__builtin_expect(send_fut.failed(), false)) {
+                  return seastar::make_exception_future<>(send_fut.get_exception());
                 }
-                auto* res_msg = fut.get0();
+                auto& res_fut = std::get<1>(tup);
+                if (__builtin_expect(res_fut.failed(), false)) {
+                  return seastar::make_exception_future<>(res_fut.get_exception());
+                }
+                auto* res_msg = res_fut.get0();
                 delete res_msg;
                 return seastar::make_ready_future<>();
             });

@@ -41,7 +41,7 @@ The following cmake options can be specified:
 * `Hiactor_TESTING`: Enable tests of Hiactor. Default is `ON`.
 * `Hiactor_GPU_ENABLE`: Enable gpu devices for Hiactor (Cuda environments required!) Default is `OFF`.
 * `Hiactor_CXX_DIALECT`: Specify the C++ dialect for Hiactor. Default is `gnu++14`.
-* `Hiactor_CXX_FLAGS`: Specify other compilation flags for Hiactor with a semicolon-separated list.
+* `Hiactor_CXX_FLAGS`: Specify other compilation flags for Hiactor.
 * `Hiactor_CPU_STALL_REPORT`: Enable warning reports at cpu stalls. Default is `OFF`.
 * `Hiactor_UNUSED_RESULT_ERROR`: Make [[nodiscard]] violations an error (instead of a warning). Default is `OFF`.
 

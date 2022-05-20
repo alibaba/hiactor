@@ -277,10 +277,6 @@ if (Hiactor_INSTALL)
       ${Hiactor_SOURCE_DIR}/codegen/ActorAutoGen.cmake
     DESTINATION ${CMAKE_INSTALL_BINDIR}/hiactor_codegen)
 
-  install (
-    DIRECTORY ${Hiactor_SOURCE_DIR}/codegen/clang/
-    DESTINATION ${CMAKE_INSTALL_BINDIR}/hiactor_codegen/clang)
-
   # install seastar binaries
   install (
     PROGRAMS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/scripts/seastar-json2code.py
