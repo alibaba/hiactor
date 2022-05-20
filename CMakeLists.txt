@@ -1,4 +1,4 @@
-# Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+# Copyright 2022 Alibaba Group Holding Limited. All Rights Reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -156,6 +156,7 @@ add_library (hiactor STATIC
   include/hiactor/util/data_type.hh
   include/hiactor/util/machine_info.hh
   include/hiactor/util/unaligned_int.hh
+  include/hiactor/testing/test_case.hh
   src/core/actor-app.cc
   src/core/actor_core.cc
   src/core/actor_factory.cc
@@ -240,9 +241,22 @@ target_compile_options (hiactor_private
 target_link_libraries (hiactor_private
   INTERFACE hiactor)
 
+include (${Hiactor_SOURCE_DIR}/codegen/ActorAutoGen.cmake)
+
 ## hiactor demos
 if (Hiactor_DEMOS)
   add_subdirectory (demos)
+endif ()
+
+## hiactor tests
+
+if (Hiactor_TESTING)
+  add_subdirectory (tests)
+  enable_testing ()
+  add_test (actor_test tests/actor_test -- -c4)
+  add_test (alien_pool_test tests/alien_pool_test -- -c4)
+  add_test (thread_pool_test tests/thread_pool_test -- --open-thread-resource-pool=true)
+  add_test (column_batch_test tests/column_batch_test)
 endif ()
 
 ## install targets
@@ -276,10 +290,6 @@ if (Hiactor_INSTALL)
       ${Hiactor_SOURCE_DIR}/codegen/utility.py
       ${Hiactor_SOURCE_DIR}/codegen/ActorAutoGen.cmake
     DESTINATION ${CMAKE_INSTALL_BINDIR}/hiactor_codegen)
-
-  install (
-    DIRECTORY ${Hiactor_SOURCE_DIR}/codegen/clang/
-    DESTINATION ${CMAKE_INSTALL_BINDIR}/hiactor_codegen/clang)
 
   # install seastar binaries
   install (
