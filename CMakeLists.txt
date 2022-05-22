@@ -240,6 +240,8 @@ target_compile_options (hiactor_private
 target_link_libraries (hiactor_private
   INTERFACE hiactor)
 
+include (${CMAKE_SOURCE_DIR}/codegen/ActorAutoGen.cmake)
+
 ## hiactor demos
 if (Hiactor_DEMOS)
   add_subdirectory (demos)

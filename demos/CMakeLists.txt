@@ -41,11 +41,10 @@ macro (hiactor_add_demo name)
   add_dependencies (demos ${target})
 endmacro ()
 
-include (${CMAKE_SOURCE_DIR}/codegen/ActorAutoGen.cmake)
-
 add_subdirectory (actor_samples)
 add_subdirectory (bank_account)
 add_subdirectory (thread_pool_sample)
+add_subdirectory (clinic_schedule)
 
 # gpu_resource_pool_sample is disable by default when CUDA environments is missing.
 if (Hiactor_GPU_ENABLE)
