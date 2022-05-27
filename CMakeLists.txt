@@ -249,7 +249,6 @@ if (Hiactor_DEMOS)
 endif ()
 
 ## hiactor tests
-
 if (Hiactor_TESTING)
   add_subdirectory (tests)
   enable_testing ()
