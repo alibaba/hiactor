@@ -1,43 +1,21 @@
-From da328cd5653ca86994e4919ad917a85bbcf53102 Mon Sep 17 00:00:00 2001
+From 54e1e55812447c6e6303d59519972c2dc63ee94e Mon Sep 17 00:00:00 2001
 From: goldenleaves <houbai.zzc@alibaba-inc.com>
-Date: Wed, 15 Dec 2021 11:20:18 +0000
+Date: Mon, 20 Jun 2022 09:07:20 +0000
 Subject: [PATCH] hiactor hackings
 
-Signed-off-by: goldenleaves <houbai.zzc@alibaba-inc.com>
 ---
- include/seastar/core/reactor.hh    |  4 +++-
- include/seastar/core/task.hh       | 32 +++++++++++++++++++++++++++---
- include/seastar/http/request.hh    |  2 +-
- include/seastar/net/api.hh         | 21 ++++++++++++++++++++
- include/seastar/net/posix-stack.hh | 13 ++++++++++++
- src/core/reactor.cc                | 17 +++++++++++++---
- src/http/httpd.cc                  |  8 ++++++--
+ include/seastar/core/task.hh       | 27 ++++++++++++++++++++++++++-
+ include/seastar/net/api.hh         | 22 ++++++++++++++++++++++
+ include/seastar/net/posix-stack.hh | 12 ++++++++++++
+ src/core/reactor.cc                | 18 +++++++++++++++---
  src/net/posix-stack.cc             |  6 ++++++
- 8 files changed, 93 insertions(+), 10 deletions(-)
+ 5 files changed, 81 insertions(+), 4 deletions(-)
 
-diff --git a/include/seastar/core/reactor.hh b/include/seastar/core/reactor.hh
-index 055b27fc..6ddf2f25 100644
---- a/include/seastar/core/reactor.hh
-+++ b/include/seastar/core/reactor.hh
-@@ -353,10 +353,12 @@ class reactor {
-     bool _bypass_fsync = false;
-     bool _have_aio_fsync = false;
-     std::atomic<bool> _dying{false};
-+public:
-+    /// hiactor hacking
-+    void wakeup();
- private:
-     static std::chrono::nanoseconds calculate_poll_time();
-     static void block_notifier(int);
--    void wakeup();
-     size_t handle_aio_error(internal::linux_abi::iocb* iocb, int ec);
-     bool flush_pending_aio();
-     bool reap_kernel_completions();
 diff --git a/include/seastar/core/task.hh b/include/seastar/core/task.hh
-index 0f8b98bb..c6742ce4 100644
+index 13b315f3..be3969e4 100644
 --- a/include/seastar/core/task.hh
 +++ b/include/seastar/core/task.hh
-@@ -26,18 +26,44 @@
+@@ -27,6 +27,26 @@
  
  namespace seastar {
  
@@ -63,85 +41,71 @@ index 0f8b98bb..c6742ce4 100644
 +
  class task {
      scheduling_group _sg;
- protected:
+ #ifdef SEASTAR_TASK_BACKTRACE
+@@ -42,12 +62,17 @@ class task {
+     scheduling_group set_scheduling_group(scheduling_group new_sg) noexcept{
+         return std::exchange(_sg, new_sg);
+     }
++
 +    execution_context* _ec;
-+public:
-+    explicit task(scheduling_group sg = current_scheduling_group()) : _sg(sg), _ec(get_local_ec()) {}
-+    explicit task(execution_context* ec, scheduling_group sg = current_scheduling_group()) : _sg(sg), _ec(ec) {}
-+
-     // Task destruction is performed by run_and_dispose() via a concrete type,
-     // so no need for a virtual destructor here. Derived classes that implement
-     // run_and_dispose() should be declared final to avoid losing concrete type
-     // information via inheritance.
--    ~task() = default;
--public:
--    explicit task(scheduling_group sg = current_scheduling_group()) : _sg(sg) {}
-+    virtual ~task() = default;
-+
+ public:
+-    explicit task(scheduling_group sg = current_scheduling_group()) noexcept : _sg(sg) {}
++    explicit task(scheduling_group sg = current_scheduling_group()) noexcept : _sg(sg), _ec(get_local_ec()) {}
++    explicit task(execution_context* ec, scheduling_group sg = current_scheduling_group()) noexcept : _sg(sg), _ec(ec) {}
      virtual void run_and_dispose() noexcept = 0;
 +    virtual void cancel() {}
+     /// Returns the next task which is waiting for this task to complete execution, or nullptr.
+     virtual task* waiting_task() noexcept = 0;
      scheduling_group group() const { return _sg; }
 +    execution_context* ec() const { return _ec; }
- };
- 
- void schedule(task* t) noexcept;
-diff --git a/include/seastar/http/request.hh b/include/seastar/http/request.hh
-index e09a1c1b..c3692a17 100644
---- a/include/seastar/http/request.hh
-+++ b/include/seastar/http/request.hh
-@@ -75,7 +75,7 @@ struct request {
-     std::unordered_map<sstring, sstring> query_parameters;
-     connection* connection_ptr;
-     parameters param;
--    sstring content;
-+    temporary_buffer<char> content; /// hiactor hacking
-     sstring protocol_name = "http";
- 
-     /**
+     shared_backtrace get_backtrace() const;
+ #ifdef SEASTAR_TASK_BACKTRACE
+     void make_backtrace() noexcept;
 diff --git a/include/seastar/net/api.hh b/include/seastar/net/api.hh
-index 8cd3f6a6..c544479b 100644
+index 666b58fc..1fd1e532 100644
 --- a/include/seastar/net/api.hh
 +++ b/include/seastar/net/api.hh
-@@ -133,6 +133,26 @@ class udp_channel {
+@@ -134,6 +134,26 @@ class udp_channel {
  
  class network_interface_impl;
  
 +/// hiactor hacking
 +/// customized load balancing policy
 +struct lba_policy {
-+  lba_policy() = default;
-+  virtual ~lba_policy() = default;
-+  virtual unsigned get_cpu(uint32_t addr, uint16_t port) = 0;
++    lba_policy() = default;
++    virtual ~lba_policy() = default;
++    virtual unsigned get_cpu(uint32_t addr, uint16_t port) = 0;
 +};
 +
 +class customized_lba {
-+  static std::unique_ptr<lba_policy> impl_;
++    static std::unique_ptr<lba_policy> impl_;
 +public:
-+  static inline unsigned get_cpu(uint32_t addr, uint16_t port) {
-+    return impl_->get_cpu(addr, port);
-+  }
-+  static inline void set_policy(std::unique_ptr<lba_policy>&& policy) {
-+    assert(!impl_ && "Error: policy is already setted.");
-+    impl_ = std::move(policy);
-+  }
++    static inline unsigned get_cpu(uint32_t addr, uint16_t port) {
++        return impl_->get_cpu(addr, port);
++    }
++    static inline void set_policy(std::unique_ptr<lba_policy>&& policy) {
++        assert(!impl_ && "Error: policy is already setted.");
++        impl_ = std::move(policy);
++    }
 +};
 +
  } /* namespace net */
  
  /// \addtogroup networking-module
-@@ -283,6 +303,7 @@ class server_socket {
+@@ -311,6 +331,8 @@ class server_socket {
          port,
          // This algorithm distributes all new connections to listen_options::fixed_cpu shard only.
          fixed,
-+        customized, // hiactor hacking
++        // hiactor hacking
++        customized,
          default_ = connection_distribution
      };
-     /// Constructs a \c server_socket not corresponding to a connection
+     /// Constructs a \c server_socket without being bound to any address
 diff --git a/include/seastar/net/posix-stack.hh b/include/seastar/net/posix-stack.hh
-index 34a19850..8ee19f65 100644
+index e76d7aff..30a7e107 100644
 --- a/include/seastar/net/posix-stack.hh
 +++ b/include/seastar/net/posix-stack.hh
-@@ -60,6 +60,15 @@ class conntrack {
+@@ -60,6 +60,14 @@ class conntrack {
              _cpu_load[cpu]++;
              return cpu;
          }
@@ -149,30 +113,29 @@ index 34a19850..8ee19f65 100644
 +        shard_id customized_cpu(socket_address &sa) {
 +            auto cpu = customized_lba::get_cpu(
 +                ntoh(sa.as_posix_sockaddr_in().sin_addr.s_addr),
-+                ntoh(sa.as_posix_sockaddr_in().sin_port)
-+            );
++                ntoh(sa.as_posix_sockaddr_in().sin_port));
 +            _cpu_load[cpu]++;
 +            return cpu;
 +        }
      };
  
      lw_shared_ptr<load_balancer> _lb;
-@@ -102,6 +111,10 @@ class conntrack {
+@@ -102,6 +110,10 @@ class conntrack {
      handle get_handle(shard_id cpu) {
          return handle(_lb->force_cpu(cpu), _lb);
      }
 +    /// hiactor hacking
 +    handle get_handle(socket_address &sa) {
-+        return handle(_lb->customized_cpu(sa), _lb);
++        return handle{_lb->customized_cpu(sa), _lb};
 +    }
  };
  
  class posix_data_source_impl final : public data_source_impl, private internal::buffer_allocator {
 diff --git a/src/core/reactor.cc b/src/core/reactor.cc
-index 7c93f628..5a6d12e9 100644
+index 6f5683d7..e001f82f 100644
 --- a/src/core/reactor.cc
 +++ b/src/core/reactor.cc
-@@ -1054,7 +1054,10 @@ void cpu_stall_detector::update_config(cpu_stall_detector_config cfg) {
+@@ -1105,7 +1105,10 @@ void cpu_stall_detector::update_config(cpu_stall_detector_config cfg) {
  
  void cpu_stall_detector::maybe_report() {
      if (_reported++ < _max_reports_per_minute) {
@@ -183,9 +146,9 @@ index 7c93f628..5a6d12e9 100644
      }
  }
  // We use a tick at every timer firing so we can report suppressed backtraces.
-@@ -1102,7 +1105,10 @@ void cpu_stall_detector::arm_timer() {
+@@ -1156,7 +1159,10 @@ void cpu_stall_detector_posix_timer::arm_timer() {
  
- void cpu_stall_detector::start_task_run(std::chrono::steady_clock::time_point now) {
+ void cpu_stall_detector::start_task_run(sched_clock::time_point now) {
      if (now > _rearm_timer_at) {
 +        /// hiactor hacking
 +        #ifdef HIACTOR_CPU_STALL_REPORT
@@ -194,16 +157,16 @@ index 7c93f628..5a6d12e9 100644
          _report_at = 1;
          _run_started_at = now;
          _rearm_timer_at = now + _threshold * _report_at;
-@@ -2844,7 +2850,7 @@ class poller::registration_task final : public task {
-         }
+@@ -3063,7 +3069,7 @@ class poller::registration_task final : public task {
          delete this;
      }
+     task* waiting_task() noexcept override { return nullptr; }
 -    void cancel() {
 +    void cancel() override /* hiactor hacking */ {
          _p = nullptr;
      }
      void moved(poller* p) {
-@@ -3189,12 +3195,16 @@ future<size_t> readable_eventfd::wait() {
+@@ -3409,12 +3415,16 @@ future<size_t> readable_eventfd::wait() {
      });
  }
  
@@ -222,45 +185,20 @@ index 7c93f628..5a6d12e9 100644
  }
  
  }
-@@ -3968,6 +3978,7 @@ internal::preemption_monitor bootstrap_preemption_monitor{};
- __thread const internal::preemption_monitor* g_need_preempt = &bootstrap_preemption_monitor;
+@@ -4240,6 +4250,8 @@ bool smp::pure_poll_queues() {
+ }
  
  __thread reactor* local_engine;
++/// hiactor hacking
 +__thread execution_context* local_ec{nullptr};
  
- void report_exception(compat::string_view message, std::exception_ptr eptr) noexcept {
+ void report_exception(std::string_view message, std::exception_ptr eptr) noexcept {
      seastar_logger.error("{}: {}", message, eptr);
-diff --git a/src/http/httpd.cc b/src/http/httpd.cc
-index ce252ac7..8505f619 100644
---- a/src/http/httpd.cc
-+++ b/src/http/httpd.cc
-@@ -163,6 +163,7 @@ bool connection::url_decode(const compat::string_view& in, sstring& out) {
- void connection::on_new_connection() {
-     ++_server._total_connections;
-     ++_server._current_connections;
-+    _fd.set_nodelay(true); /// hiactor hacking
-     _server._connections.push_back(*this);
- }
- 
-@@ -196,8 +197,11 @@ read_request_body(input_stream<char>& buf, std::unique_ptr<httpd::request> req)
-     if (!req->content_length) {
-         return make_ready_future<std::unique_ptr<httpd::request>>(std::move(req));
-     }
--    return buf.read_exactly(req->content_length).then([req = std::move(req)] (temporary_buffer<char> body) mutable {
--        req->content = seastar::to_sstring(std::move(body));
-+    /// hiactor hacking
-+    /// Bug Fix: The content length here is undefined as req has been moved.
-+    auto content_length = req->content_length;
-+    return buf.read_exactly(content_length).then([req = std::move(req)] (temporary_buffer<char> body) mutable {
-+        req->content = std::move(body);
-         return make_ready_future<std::unique_ptr<httpd::request>>(std::move(req));
-     });
- }
 diff --git a/src/net/posix-stack.cc b/src/net/posix-stack.cc
-index e0bd5037..7a378926 100644
+index 3080c653..50f9590f 100644
 --- a/src/net/posix-stack.cc
 +++ b/src/net/posix-stack.cc
-@@ -72,6 +72,9 @@ namespace net {
+@@ -74,6 +74,9 @@ namespace net {
  
  using namespace seastar;
  
@@ -270,16 +208,16 @@ index e0bd5037..7a378926 100644
  class posix_connected_socket_operations {
  public:
      virtual ~posix_connected_socket_operations() = default;
-@@ -453,6 +456,9 @@ posix_server_socket_impl::accept() {
-                 return _conntrack.get_handle();
-             case server_socket::load_balancing_algorithm::port:
+@@ -476,6 +479,9 @@ posix_server_socket_impl::accept() {
                  return _conntrack.get_handle(ntoh(sa.as_posix_sockaddr_in().sin_port) % smp::count);
+             case server_socket::load_balancing_algorithm::fixed:
+                 return _conntrack.get_handle(_fixed_cpu);
 +            /// hiactor hacking
 +            case server_socket::load_balancing_algorithm::customized:
 +                return _conntrack.get_handle(sa);
-             case server_socket::load_balancing_algorithm::fixed:
-                 return _conntrack.get_handle(_fixed_cpu);
              default: abort();
+             }
+         } ();
 -- 
 2.25.1
 

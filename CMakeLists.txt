@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.13)
 
 project (Hiactor
   VERSION 1.0
   LANGUAGES CXX)
+
+set (CMAKE_CXX_STANDARD
+  "17"
+  CACHE
+  STRING
+  "C++ standard to build with.")
 
 option (Hiactor_DEBUG
   "Enable debug mode"
@@ -46,12 +52,6 @@ option (Hiactor_UNUSED_RESULT_ERROR
   "Make [[nodiscard]] violations an error (instead of a warning)."
   OFF)
 
-set (Hiactor_CXX_DIALECT
-  "gnu++14"
-  CACHE
-  STRING
-  "Compile Hiactor according to the named C++ standard.")
-
 set (Hiactor_CXX_FLAGS
   ""
   CACHE
@@ -68,12 +68,8 @@ endif ()
 set (Hiactor_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set (Hiactor_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-## Set seastar cxx dialect
-set (Seastar_CXX_DIALECT
-  ${Hiactor_CXX_DIALECT}
-  CACHE
-  STRING
-  "Compile Seastar according to the named C++ standard.")
+## Disable io uring of seastar now
+set (Seastar_IO_URING OFF)
 
 ## Set seastar dirs
 set (Hiactor_BUILD_SEASTAR_SOURCE_DIR ${Hiactor_BINARY_DIR}/seastar)
@@ -218,9 +214,16 @@ else ()
 endif ()
 
 target_compile_options (hiactor
+  PUBLIC ${Hiactor_MODE_FLAGS})
+
+target_compile_features (hiactor
   PUBLIC
-    -std=${Hiactor_CXX_DIALECT}
-    ${Hiactor_MODE_FLAGS})
+    cxx_std_${CMAKE_CXX_STANDARD})
+
+set_target_properties (hiactor
+  PROPERTIES
+    CXX_STANDARD ${CMAKE_CXX_STANDARD}
+    CXX_EXTENSIONS ON)
 
 target_link_libraries (hiactor
   PUBLIC
