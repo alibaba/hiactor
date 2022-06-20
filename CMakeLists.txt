@@ -68,8 +68,12 @@ endif ()
 set (Hiactor_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set (Hiactor_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-## Disable io uring of seastar now
-set (Seastar_IO_URING OFF)
+## Use io_uring of seastar, disable by default.
+set (Seastar_IO_URING
+  OFF
+  CACHE
+  BOOL
+  "Support seastar io_uring")
 
 ## Set seastar dirs
 set (Hiactor_BUILD_SEASTAR_SOURCE_DIR ${Hiactor_BINARY_DIR}/seastar)
