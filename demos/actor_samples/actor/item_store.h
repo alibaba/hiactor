@@ -16,6 +16,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <string>
 
 /// This file simulates a simple item store to manage item infos in our actor samples.
 
