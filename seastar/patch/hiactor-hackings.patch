@@ -1,4 +1,4 @@
-From da328cd5653ca86994e4919ad917a85bbcf53102 Mon Sep 17 00:00:00 2001
+From ff12d298ac2e61381e93358d02b9c2e7cdf06237 Mon Sep 17 00:00:00 2001
 From: goldenleaves <houbai.zzc@alibaba-inc.com>
 Date: Wed, 15 Dec 2021 11:20:18 +0000
 Subject: [PATCH] hiactor hackings
@@ -10,10 +10,11 @@ Signed-off-by: goldenleaves <houbai.zzc@alibaba-inc.com>
  include/seastar/http/request.hh    |  2 +-
  include/seastar/net/api.hh         | 21 ++++++++++++++++++++
  include/seastar/net/posix-stack.hh | 13 ++++++++++++
+ src/core/future.cc                 |  2 +-
  src/core/reactor.cc                | 17 +++++++++++++---
  src/http/httpd.cc                  |  8 ++++++--
  src/net/posix-stack.cc             |  6 ++++++
- 8 files changed, 93 insertions(+), 10 deletions(-)
+ 9 files changed, 94 insertions(+), 11 deletions(-)
 
 diff --git a/include/seastar/core/reactor.hh b/include/seastar/core/reactor.hh
 index 055b27fc..6ddf2f25 100644
@@ -168,6 +169,19 @@ index 34a19850..8ee19f65 100644
  };
  
  class posix_data_source_impl final : public data_source_impl, private internal::buffer_allocator {
+diff --git a/src/core/future.cc b/src/core/future.cc
+index e7277edd..af96c537 100644
+--- a/src/core/future.cc
++++ b/src/core/future.cc
+@@ -102,7 +102,7 @@ template void promise_base::make_ready<promise_base::urgent::no>() noexcept;
+ template void promise_base::make_ready<promise_base::urgent::yes>() noexcept;
+ 
+ template
+-future<> internal::current_exception_as_future() noexcept;
++future<> current_exception_as_future() noexcept;
+ }
+ 
+ /**
 diff --git a/src/core/reactor.cc b/src/core/reactor.cc
 index 7c93f628..5a6d12e9 100644
 --- a/src/core/reactor.cc
