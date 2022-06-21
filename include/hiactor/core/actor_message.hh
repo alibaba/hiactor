@@ -82,7 +82,7 @@ struct actor_message {
         uint32_t pr_id;
 
         message_type m_type;
-        const bool from_network;
+        bool from_network;
         // to make header a POD type, we explicitly define a default constructor
         header() = default;
 
