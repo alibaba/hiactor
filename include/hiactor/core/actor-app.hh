@@ -35,6 +35,7 @@ public:
     explicit actor_app(seastar::app_template::config cfg = seastar::app_template::config())
         : _app(std::move(cfg)) {}
     int run(int ac, char** av, std::function<void()>&& func);
+    seastar::alien::instance& alien() { return _app.alien(); }
 private:
     void add_actor_options();
     seastar::future<> start_network();
