@@ -19,13 +19,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Install Dependencies
+      working-directory: ${{github.workspace}}
       run: |
-        cd seastar && git clone https://github.com/scylladb/seastar.git
-        cd seastar && git checkout 59f7b32
-        cd ../.. && sudo ./seastar/seastar/install-dependencies.sh
-        
-   
+        git submodule update --init
+        sudo ./seastar/seastar/install-dependencies.sh
+
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
@@ -36,12 +36,12 @@ jobs:
         mkdir build && cd build
         git config --global user.name "github-actions[bot]"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DHiactor_CXX_DIALECT=gnu++17 ..
+        cmake -DHiactor_CXX_DIALECT=gnu++17 -DHiactor_TESTING=ON -DHiactor_DEMOS=OFF ..
+
     - name: Build
       working-directory: ${{github.workspace}}/build
       run: |
-        make -j8
-        sudo make install
+        make -j10
       
     - name: Test
       working-directory: ${{github.workspace}}/build
