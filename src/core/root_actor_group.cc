@@ -208,10 +208,10 @@ seastar::future<> root_actor_group::receive(actor_message* msg) {
     if (sem_f.available()) {
         child->schedule();
     } else {
-        auto activate_actor_func = [child](const seastar::future_state<int>&&) {
+        auto activate_actor_func = [child](const seastar::future_state<seastar::future<>::value_type>& state) {
             child->schedule();
         };
-        using continuationized_func = continuation<std::function<void(const seastar::future_state<int>&&)>, int>;
+        using continuationized_func = continuation<std::function<void(const seastar::future_state<seastar::future<>::value_type>& state)>>;
         seastar::internal::set_callback(sem_f, new continuationized_func(std::move(activate_actor_func)));
     }
 

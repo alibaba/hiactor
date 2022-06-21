@@ -19,10 +19,14 @@
 
 namespace hiactor {
 
-template <typename... T>
+#if SEASTAR_API_LEVEL < 6
+template <class... T>
+#else
+template <class T = void>
+#endif
 struct pr_manager {
     struct node {
-        seastar::promise<T...> pr;
+        seastar::promise<T SEASTAR_ELLIPSIS> pr;
         uint32_t next_avl;
         bool active;
 
@@ -32,7 +36,7 @@ struct pr_manager {
         ~node() = default;
 
         void occupy() {
-            pr = seastar::promise<T...>{};
+            pr = seastar::promise<T SEASTAR_ELLIPSIS>{};
             active = true;
         }
 
@@ -46,7 +50,7 @@ struct pr_manager {
     explicit pr_manager(const size_t init_reserve_size = 0) : available(0) {
         pr_array.reserve(init_reserve_size + 1);
         pr_array.emplace_back();
-        pr_array[0].pr.set_value(std::tuple<T...>{});
+        pr_array[0].pr.set_value(std::tuple<T SEASTAR_ELLIPSIS>{});
         pr_array[0].release();
     }
     ~pr_manager() = default;
@@ -68,24 +72,16 @@ struct pr_manager {
         available = pr_id;
     }
 
-    uint32_t size() const {
-        return static_cast<uint32_t>(pr_array.size());
+    size_t size() const {
+        return pr_array.size();
     }
 
     bool is_active(uint32_t pr_id) const {
         return pr_array[pr_id].active;
     }
 
-    seastar::future<T...> get_future(uint32_t pr_id) noexcept {
+    seastar::future<T SEASTAR_ELLIPSIS> get_future(uint32_t pr_id) noexcept {
         return pr_array[pr_id].pr.get_future();
-    }
-
-    void set_value(uint32_t pr_id, const std::tuple<T...>& result) noexcept {
-        pr_array[pr_id].pr.set_value(result);
-    }
-
-    void set_value(uint32_t pr_id, std::tuple<T...>&& result) noexcept {
-        pr_array[pr_id].pr.set_value(std::move(result));
     }
 
     template <typename... A>

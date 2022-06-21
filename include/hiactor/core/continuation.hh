@@ -22,12 +22,17 @@
 namespace hiactor {
 
 /// actor continuation task
+#if SEASTAR_API_LEVEL < 6
 template <typename Func, typename... T>
-struct continuation final : seastar::continuation_base<T...> {
-    explicit continuation(Func&& func) : seastar::continuation_base<T...>(), _func(std::move(func)) {}
+#else
+template <typename Func, typename T = void>
+#endif
+struct continuation final : public seastar::continuation_base<T SEASTAR_ELLIPSIS> {
+    explicit continuation(Func&& func) noexcept
+        : seastar::continuation_base<T SEASTAR_ELLIPSIS>(), _func(std::move(func)) {}
 
     void run_and_dispose() noexcept override {
-        _func(std::move(this->_state));
+        _func(this->_state);
         delete this;
     }
 

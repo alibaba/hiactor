@@ -163,7 +163,7 @@ void reentrant_actor<MaxConcurrency>::run_and_dispose() noexcept {
                         }
                     };
                     using continuationized_func =
-                        continuation<std::function<void(seastar::future_state<stop_reaction>)>, stop_reaction>;
+                        continuation<std::function<void(const seastar::future_state<stop_reaction>&)>, stop_reaction>;
                     seastar::internal::set_callback(
                         result_f, new continuationized_func(std::move(post_work_func)));
                     if (_cur_concurrency == _max_concurrency) { goto FINAL; }
