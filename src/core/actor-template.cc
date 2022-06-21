@@ -87,10 +87,10 @@ actor_base* actor_group::get_actor_local(actor_message::header& hdr) {
         if (sem_f.available()) {
             child->schedule();
         } else {
-            auto activate_actor_func = [child](const seastar::future_state<>&& state) {
+            auto activate_actor_func = [child](const seastar::future_state<int>&& state) {
                 child->schedule();
             };
-            using continuationized_func = continuation<std::function<void(const seastar::future_state<>&&)>>;
+            using continuationized_func = continuation<std::function<void(const seastar::future_state<int>&&)>, int>;
             seastar::internal::set_callback(
                 sem_f, new continuationized_func(std::move(activate_actor_func)));
         }

@@ -24,9 +24,7 @@ namespace hiactor {
 /// actor continuation task
 template <typename Func, typename... T>
 struct continuation final : seastar::continuation_base<T...> {
-    continuation(Func&& func, seastar::future_state<T...>&& state)
-        : seastar::continuation_base<T...>(std::move(state)), _func(std::move(func)) {}
-    explicit continuation(Func&& func) : _func(std::move(func)) {}
+    explicit continuation(Func&& func) : seastar::continuation_base<T...>(), _func(std::move(func)) {}
 
     void run_and_dispose() noexcept override {
         _func(std::move(this->_state));

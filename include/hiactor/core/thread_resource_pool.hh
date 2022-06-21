@@ -40,7 +40,7 @@ class work_thread {
     struct work_item_returning : work_item {
         seastar::noncopyable_function<T()> func;
         seastar::promise<T> promise;
-        seastar::compat::optional<T> result{};
+        std::optional<T> result{};
 
         work_item_returning(unsigned from_shard, seastar::noncopyable_function<T()> func)
             : work_item(from_shard), func(std::move(func)) {}
@@ -107,13 +107,13 @@ public:
                 "Thread resource pool is not open. "
                 "Try to add command line parameter \"--open-thread-resource-pool=true\".")));
         }
-        return seastar::repeat_until_value([]() -> seastar::future<seastar::compat::optional<work_thread*>> {
+        return seastar::repeat_until_value([]() -> seastar::future<std::optional<work_thread*>> {
             work_thread* wt = nullptr;
             if (_threads->pop(wt)) {
-                return seastar::make_ready_future<seastar::compat::optional<work_thread*>>(wt);
+                return seastar::make_ready_future<std::optional<work_thread*>>(wt);
             }
             return seastar::sleep(std::chrono::microseconds(_sleep_duration_in_microseconds)).then([] {
-                return seastar::make_ready_future<seastar::compat::optional<work_thread*>>(seastar::compat::nullopt);
+                return seastar::make_ready_future<std::optional<work_thread*>>(std::nullopt);
             });
         }).then([func = std::move(func)](work_thread* wt) {
             return wt->submit<T>(std::move(func));

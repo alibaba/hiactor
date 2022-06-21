@@ -1,9 +1,10 @@
-From 4330bdbe293485d017daa5d16dcc1763d504053e Mon Sep 17 00:00:00 2001
+From ea01803ed71c282a8ee1e9052b96c32a6eb20695 Mon Sep 17 00:00:00 2001
 From: goldenleaves <houbai.zzc@alibaba-inc.com>
 Date: Tue, 21 Jun 2022 06:26:59 +0000
 Subject: [PATCH] hiactor hackings
 
 ---
+ include/seastar/core/future.hh     |  4 +++-
  include/seastar/core/reactor.hh    |  3 ++-
  include/seastar/core/task.hh       | 26 +++++++++++++++++++++++++-
  include/seastar/net/api.hh         | 21 +++++++++++++++++++++
@@ -11,8 +12,23 @@ Subject: [PATCH] hiactor hackings
  src/core/reactor.cc                | 17 ++++++++++++++---
  src/http/httpd.cc                  |  1 +
  src/net/posix-stack.cc             |  6 ++++++
- 7 files changed, 81 insertions(+), 5 deletions(-)
+ 8 files changed, 84 insertions(+), 6 deletions(-)
 
+diff --git a/include/seastar/core/future.hh b/include/seastar/core/future.hh
+index 81ee1852..d26e043d 100644
+--- a/include/seastar/core/future.hh
++++ b/include/seastar/core/future.hh
+@@ -701,7 +701,9 @@ class continuation_base : public task {
+     using future_type = future<T SEASTAR_ELLIPSIS>;
+     using promise_type = promise<T SEASTAR_ELLIPSIS>;
+ public:
+-    continuation_base() noexcept = default;
++    /// hiactor hacking
++    /// fix building error in low version gcc
++    continuation_base() = default;
+     void set_state(future_state&& state) noexcept {
+         _state = std::move(state);
+     }
 diff --git a/include/seastar/core/reactor.hh b/include/seastar/core/reactor.hh
 index 2b3a46f6..7b714343 100644
 --- a/include/seastar/core/reactor.hh

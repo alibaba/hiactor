@@ -47,7 +47,7 @@ option (Hiactor_UNUSED_RESULT_ERROR
   OFF)
 
 set (Hiactor_CXX_DIALECT
-  "gnu++14"
+  "gnu++17"
   CACHE
   STRING
   "Compile Hiactor according to the named C++ standard.")
