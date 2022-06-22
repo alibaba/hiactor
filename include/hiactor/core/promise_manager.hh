@@ -50,7 +50,8 @@ struct pr_manager {
     explicit pr_manager(const size_t init_reserve_size = 0) : available(0) {
         pr_array.reserve(init_reserve_size + 1);
         pr_array.emplace_back();
-        pr_array[0].pr.set_value(std::tuple<T SEASTAR_ELLIPSIS>{});
+        using value_type = typename seastar::future<T SEASTAR_ELLIPSIS>::value_type;
+        pr_array[0].pr.set_value(value_type{});
         pr_array[0].release();
     }
     ~pr_manager() = default;
