@@ -19,6 +19,8 @@
 #include <hiactor/core/exception.hh>
 #include <hiactor/core/root_actor_group.hh>
 
+#include <seastar/core/when_all.hh>
+
 namespace hiactor {
 
 struct actor_client {

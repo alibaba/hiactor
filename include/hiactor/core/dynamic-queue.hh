@@ -28,7 +28,7 @@ namespace hiactor {
 template <typename T>
 class dynamic_queue {
     std::queue<T, seastar::circular_buffer<T>> _q;
-    seastar::compat::optional<seastar::promise<>> _not_empty;
+    std::optional<seastar::promise<>> _not_empty;
     std::exception_ptr _ex = nullptr;
 private:
     void notify_not_empty();
@@ -93,7 +93,7 @@ public:
         _ex = ex;
         if (_not_empty) {
             _not_empty->set_exception(std::move(ex));
-            _not_empty = seastar::compat::nullopt;
+            _not_empty = std::nullopt;
         }
     }
 };
@@ -107,7 +107,7 @@ inline
 void dynamic_queue<T>::notify_not_empty() {
     if (_not_empty) {
         _not_empty->set_value();
-        _not_empty = seastar::compat::optional<seastar::promise<>>();
+        _not_empty = std::optional<seastar::promise<>>();
     }
 }
 

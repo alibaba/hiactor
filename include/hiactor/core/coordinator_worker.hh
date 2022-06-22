@@ -41,7 +41,7 @@ class coord_work_queue {
     struct work_item_returning : work_item {
         seastar::noncopyable_function<T()> _func;
         seastar::promise<T> _promise;
-        seastar::compat::optional<T> _result;
+        std::optional<T> _result;
         explicit work_item_returning(seastar::noncopyable_function<T()> func) : _func(std::move(func)) {}
         void process() override { _result = this->_func(); }
         void complete() override { _promise.set_value(std::move(*_result)); }

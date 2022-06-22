@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.13)
 
 project (Hiactor
   VERSION 1.0
@@ -47,7 +47,7 @@ option (Hiactor_UNUSED_RESULT_ERROR
   OFF)
 
 set (Hiactor_CXX_DIALECT
-  "gnu++14"
+  "gnu++17"
   CACHE
   STRING
   "Compile Hiactor according to the named C++ standard.")
@@ -339,10 +339,9 @@ if (Hiactor_INSTALL)
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/FindConcepts.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/FindGnuTLS.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/FindLinuxMembarrier.cmake
-      ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/FindProtobuf.cmake
+      ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/FindPthreadSetName.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/FindSanitizers.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/FindStdAtomic.cmake
-      ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/FindStdFilesystem.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/Findc-ares.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/Findcryptopp.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/Finddpdk.cmake
@@ -354,6 +353,7 @@ if (Hiactor_INSTALL)
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/Findrt.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/Findyaml-cpp.cmake
       ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/SeastarDependencies.cmake
+      ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/dpdk_configure.cmake
     DESTINATION ${install_cmake_dir})
 
   install (

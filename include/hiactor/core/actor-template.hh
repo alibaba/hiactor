@@ -158,12 +158,12 @@ void reentrant_actor<MaxConcurrency>::run_and_dispose() noexcept {
                         reclaim_actor_message(msg);
                         if (state.failed()) {
                             log_exception(state.get_exception());
-                        } else if (std::get<0>(state.get()) == stop_reaction::yes) {
+                        } else if (state.get()) {
                             dynamic_cast<actor_base*>(_ec)->stop_child_actor(_address, true);
                         }
                     };
                     using continuationized_func =
-                        continuation<std::function<void(seastar::future_state<stop_reaction>)>, stop_reaction>;
+                        continuation<std::function<void(const seastar::future_state<stop_reaction>&)>, stop_reaction>;
                     seastar::internal::set_callback(
                         result_f, new continuationized_func(std::move(post_work_func)));
                     if (_cur_concurrency == _max_concurrency) { goto FINAL; }

@@ -44,9 +44,9 @@ class root_actor_group final : public actor_base {
     pr_manager<actor_message*> _response_pr_manager{GInitTwoWayPromiseNum};
     seastar::semaphore _actor_activation_sem{GMaxActiveChildNum};
     std::atomic<bool> _sleeping{false};
-    seastar::compat::optional<seastar::reactor::poller> _actor_smp_poller = {};
-    seastar::compat::optional<seastar::reactor::poller> _coord_poller = {};
-    seastar::compat::optional<seastar::reactor::poller> _thread_resource_poller = {};
+    std::optional<seastar::reactor::poller> _actor_smp_poller = {};
+    std::optional<seastar::reactor::poller> _coord_poller = {};
+    std::optional<seastar::reactor::poller> _thread_resource_poller = {};
 #ifdef HIACTOR_GPU_ENABLE
     seastar::compat::optional<seastar::reactor::poller> _gpu_resource_poller = {};
 #endif

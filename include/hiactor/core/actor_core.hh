@@ -79,7 +79,10 @@ private:
 public:
     explicit actor_base(actor_base* exec_ctx, const byte_t* addr);
     explicit actor_base(actor_base* exec_ctx);
-    ~actor_base() override;
+    virtual ~actor_base();
+
+    /// FIXME: No use in hiactor
+    task* waiting_task() noexcept override { return nullptr; }
 
     scope_builder get_scope();
 
