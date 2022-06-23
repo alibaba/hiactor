@@ -132,10 +132,11 @@ if (Hiactor_DPDK)
     cmake_host_system_information (RESULT CPU_NUMBER QUERY NUMBER_OF_PHYSICAL_CORES)
     execute_process (
       COMMAND make ${dpdk_args} config
+      COMMAND /bin/bash -c "cp ${Hiactor_BINARY_DIR}/dpdk_build/.config ${Hiactor_BINARY_DIR}/dpdk_build/old_config"
       COMMAND
         ${CMAKE_COMMAND}
         -DSeastar_DPDK_MACHINE=${Seastar_DPDK_MACHINE}
-        -DSeastar_DPDK_CONFIG_FILE_IN=${Hiactor_BINARY_DIR}/dpdk_build/.config
+        -DSeastar_DPDK_CONFIG_FILE_IN=${Hiactor_BINARY_DIR}/dpdk_build/old_config
         -DSeastar_DPDK_CONFIG_FILE_CHANGES=${Hiactor_BINARY_DIR}/dpdk_config
         -DSeastar_DPDK_CONFIG_FILE_OUT=${Hiactor_BINARY_DIR}/dpdk_build/${dpdk_quadruple}/.config
         -P ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/dpdk_configure.cmake
