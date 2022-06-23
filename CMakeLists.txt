@@ -102,51 +102,47 @@ if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
     COMMAND git clone -c advice.detachedHead=false -q ${Hiactor_SOURCE_DIR}/seastar/seastar
     WORKING_DIRECTORY ${Hiactor_BINARY_DIR})
 
+  message ("-- Copying Seastar module code source into build dir ...")
+  execute_process (
+    COMMAND git clone -c advice.detachedHead=false -q ${Hiactor_SOURCE_DIR}/seastar/seastar/dpdk
+    WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+
   message ("-- Applying Seastar patch from Hiactor ...")
   execute_process (
     COMMAND git am -q ${Hiactor_SOURCE_DIR}/seastar/patch/hiactor-hackings.patch
     WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+endif ()
 
-  if (Hiactor_DPDK)
-    message ("-- Copying DPDK code source into build dir ...")
-    execute_process (
-      COMMAND git clone -c advice.detachedHead=false -q ${Hiactor_SOURCE_DIR}/seastar/seastar/dpdk
-      WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+if (Hiactor_DPDK)
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    set (dpdk_quadruple arm64-armv8a-linuxapp-gcc)
+  else()
+    set (dpdk_quadruple ${CMAKE_SYSTEM_PROCESSOR}-native-linuxapp-gcc)
+  endif()
 
-    if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-      set (dpdk_quadruple arm64-armv8a-linuxapp-gcc)
-    else()
-      set (dpdk_quadruple ${CMAKE_SYSTEM_PROCESSOR}-native-linuxapp-gcc)
-    endif()
+  set (dpdk_args
+    # gcc 10 defaults to -fno-common, which dpdk is not prepared for
+    "EXTRA_CFLAGS=-Wno-error -fcommon"
+    O=${Hiactor_BINARY_DIR}/dpdk_build
+    DESTDIR=${Hiactor_BINARY_DIR}/dpdk_installed
+    T=${dpdk_quadruple})
 
-    set (dpdk_args
-      # gcc 10 defaults to -fno-common, which dpdk is not prepared for
-      "EXTRA_CFLAGS=-Wno-error -fcommon"
-      O=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build
-      DESTDIR=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_installed
-      T=${dpdk_quadruple})
-
+  if (NOT EXISTS ${Hiactor_BINARY_DIR}/dpdk_installed)
     message ("-- Building DPDK ...")
     cmake_host_system_information (RESULT CPU_NUMBER QUERY NUMBER_OF_PHYSICAL_CORES)
     execute_process (
       COMMAND make ${dpdk_args} config
       COMMAND
-        ${CMAKE_COMMAND} -E copy
-        ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build/.config
-        ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build/old_config
-      COMMAND
         ${CMAKE_COMMAND}
         -DSeastar_DPDK_MACHINE=${Seastar_DPDK_MACHINE}
-        -DSeastar_DPDK_CONFIG_FILE_IN=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build/old_config
-        -DSeastar_DPDK_CONFIG_FILE_CHANGES=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_config
-        -DSeastar_DPDK_CONFIG_FILE_OUT=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build/${dpdk_quadruple}/.config
+        -DSeastar_DPDK_CONFIG_FILE_IN=${Hiactor_BINARY_DIR}/dpdk_build/.config
+        -DSeastar_DPDK_CONFIG_FILE_CHANGES=${Hiactor_BINARY_DIR}/dpdk_config
+        -DSeastar_DPDK_CONFIG_FILE_OUT=${Hiactor_BINARY_DIR}/dpdk_build/${dpdk_quadruple}/.config
         -P ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/dpdk_configure.cmake
       COMMAND make ${dpdk_args} install -j${CPU_NUMBER}
       WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk)
   endif ()
-endif ()
 
-if (Hiactor_DPDK)
   list (APPEND CMAKE_PREFIX_PATH ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_installed)
 endif ()
 
