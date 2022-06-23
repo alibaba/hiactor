@@ -128,7 +128,7 @@ if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
 
     message ("-- Building DPDK ...")
     execute_process (
-      COMMAND make ${dpdk_args} config
+      COMMAND /bin/bash -c "make ${dpdk_args} config"
       COMMAND
         ${CMAKE_COMMAND}
         -DSeastar_DPDK_MACHINE=${Seastar_DPDK_MACHINE}
@@ -136,7 +136,7 @@ if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
         -DSeastar_DPDK_CONFIG_FILE_CHANGES=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_config
         -DSeastar_DPDK_CONFIG_FILE_OUT=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build/${dpdk_quadruple}/.config
         -P ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/dpdk_configure.cmake
-      COMMAND ${make_command} ${dpdk_args} install
+      COMMAND /bin/bash -c "make ${dpdk_args} install"
       WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk)
   endif ()
 endif ()
