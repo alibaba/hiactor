@@ -149,7 +149,7 @@ if (Hiactor_DPDK)
       WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk)
   endif ()
 
-  list (APPEND CMAKE_PREFIX_PATH ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_installed)
+  list (APPEND CMAKE_PREFIX_PATH ${Hiactor_BINARY_DIR}/dpdk_installed)
 endif ()
 
 add_subdirectory (${Hiactor_BINARY_DIR}/seastar)
