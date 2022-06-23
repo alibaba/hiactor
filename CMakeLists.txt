@@ -97,20 +97,20 @@ set (Hiactor_BUILD_SEASTAR_BINARY_DIR ${Hiactor_BINARY_DIR}/build/seastar)
 
 ## Copy seastar repo and apply patch
 if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
-  message ("Copying Seastar code source into build dir ...")
+  message ("-- Copying Seastar code source into build dir ...")
   execute_process (
-    COMMAND git clone -q ${Hiactor_SOURCE_DIR}/seastar/seastar
+    COMMAND git clone -c advice.detachedHead=false -q ${Hiactor_SOURCE_DIR}/seastar/seastar
     WORKING_DIRECTORY ${Hiactor_BINARY_DIR})
 
-  message ("Applying Seastar patch from Hiactor ...")
+  message ("-- Applying Seastar patch from Hiactor ...")
   execute_process (
     COMMAND git am -q ${Hiactor_SOURCE_DIR}/seastar/patch/hiactor-hackings.patch
     WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
 
   if (Hiactor_DPDK)
-    message ("Copying DPDK code source into build dir ...")
+    message ("-- Copying DPDK code source into build dir ...")
     execute_process (
-      COMMAND git clone -q ${Hiactor_SOURCE_DIR}/seastar/seastar/dpdk
+      COMMAND git clone -c advice.detachedHead=false -q ${Hiactor_SOURCE_DIR}/seastar/seastar/dpdk
       WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
 
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
@@ -126,9 +126,9 @@ if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
       DESTDIR=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_installed
       T=${dpdk_quadruple})
 
-    message ("Building DPDK ...")
+    message ("-- Building DPDK ...")
     execute_process (
-      COMMAND ${make_command} ${dpdk_args} config
+      COMMAND make ${dpdk_args} config
       COMMAND
         ${CMAKE_COMMAND}
         -DSeastar_DPDK_MACHINE=${Seastar_DPDK_MACHINE}
