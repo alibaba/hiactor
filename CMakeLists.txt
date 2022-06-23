@@ -34,6 +34,10 @@ option (Hiactor_INSTALL
   "Install targets."
   ON)
 
+option (Hiactor_DPDK
+  "Enable DPDK support."
+  OFF)
+
 option (Hiactor_GPU_ENABLE
   "Enable gpu device for hiactor, cuda environments required!"
   OFF)
@@ -68,12 +72,24 @@ endif ()
 set (Hiactor_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set (Hiactor_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-## Set seastar cxx dialect
+## Override seastar options
 set (Seastar_CXX_DIALECT
   ${Hiactor_CXX_DIALECT}
   CACHE
   STRING
   "Compile Seastar according to the named C++ standard.")
+
+set (Seastar_DPDK
+  ${Hiactor_DPDK}
+  CACHE
+  BOOL
+  "Enable Seastar DPDK support.")
+
+set (Seastar_DPDK_MACHINE
+  "native"
+  CACHE
+  STRING
+  "Configure Seastar DPDK with native machine.")
 
 ## Set seastar dirs
 set (Hiactor_BUILD_SEASTAR_SOURCE_DIR ${Hiactor_BINARY_DIR}/seastar)
@@ -81,15 +97,52 @@ set (Hiactor_BUILD_SEASTAR_BINARY_DIR ${Hiactor_BINARY_DIR}/build/seastar)
 
 ## Copy seastar repo and apply patch
 if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
-  message ("Copying seastar source repo into build dir ...")
+  message ("Copying Seastar code source into build dir ...")
   execute_process (
     COMMAND git clone -q ${Hiactor_SOURCE_DIR}/seastar/seastar
     WORKING_DIRECTORY ${Hiactor_BINARY_DIR})
 
-  message ("Applying seastar patch from hiactor ...")
+  message ("Applying Seastar patch from Hiactor ...")
   execute_process (
     COMMAND git am -q ${Hiactor_SOURCE_DIR}/seastar/patch/hiactor-hackings.patch
     WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+
+  if (Hiactor_DPDK)
+    message ("Copying DPDK code source into build dir ...")
+    execute_process (
+      COMMAND git clone -q ${Hiactor_SOURCE_DIR}/seastar/seastar/dpdk
+      WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+      set (dpdk_quadruple arm64-armv8a-linuxapp-gcc)
+    else()
+      set (dpdk_quadruple ${CMAKE_SYSTEM_PROCESSOR}-native-linuxapp-gcc)
+    endif()
+
+    set (dpdk_args
+      # gcc 10 defaults to -fno-common, which dpdk is not prepared for
+      "EXTRA_CFLAGS=-Wno-error -fcommon"
+      O=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build
+      DESTDIR=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_installed
+      T=${dpdk_quadruple})
+
+    message ("Building DPDK ...")
+    execute_process (
+      COMMAND ${make_command} ${dpdk_args} config
+      COMMAND
+        ${CMAKE_COMMAND}
+        -DSeastar_DPDK_MACHINE=${Seastar_DPDK_MACHINE}
+        -DSeastar_DPDK_CONFIG_FILE_IN=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build/.config
+        -DSeastar_DPDK_CONFIG_FILE_CHANGES=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_config
+        -DSeastar_DPDK_CONFIG_FILE_OUT=${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_build/${dpdk_quadruple}/.config
+        -P ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/cmake/dpdk_configure.cmake
+      COMMAND ${make_command} ${dpdk_args} install
+      WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk)
+  endif ()
+endif ()
+
+if (Hiactor_DPDK)
+  list (APPEND CMAKE_PREFIX_PATH ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk_installed)
 endif ()
 
 add_subdirectory (${Hiactor_BINARY_DIR}/seastar)

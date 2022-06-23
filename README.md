@@ -26,7 +26,7 @@ Before building Hiactor, update the project submodules and install dependencies
 for Seastar:
 
 ```shell
-$ git submodule update --init
+$ git submodule update --init --recursive
 $ sudo ./seastar/seastar/install-dependencies.sh
 ```
 
@@ -46,6 +46,7 @@ The following cmake options can be specified:
 * `Hiactor_DEMOS`: Enable demos of Hiactor. Default is `ON`.
 * `Hiactor_TESTING`: Enable tests of Hiactor. Default is `ON`.
 * `Hiactor_GPU_ENABLE`: Enable gpu devices for Hiactor (Cuda environments required!) Default is `OFF`.
+* `Hiactor_DPDK`: Enable DPDK support for Hiactor. Default is `OFF`.
 * `Hiactor_CXX_DIALECT`: Specify the C++ dialect for Hiactor. Default is `gnu++17`.
 * `Hiactor_CXX_FLAGS`: Specify other compilation flags for Hiactor.
 * `Hiactor_CPU_STALL_REPORT`: Enable warning reports at cpu stalls. Default is `OFF`.
@@ -54,7 +55,8 @@ The following cmake options can be specified:
 Seastar is embedded with `add_subdirectory` in hiactor, you can add 
 cmake options of Seastar directly when configuring. Note that the apps, 
 demos, docs and tests of Seastar are disabled in its embedding mode,
-and the `Seastar_CXX_DIALECT` is overridden by the `Hiactor_CXX_DIALECT`.
+besides, `Seastar_CXX_DIALECT` will be overridden by `Hiactor_CXX_DIALECT`
+and `Seastar_DPDK` will be overridden by `Hiactor_DPDK`.
 
 An example cmake options:
 
