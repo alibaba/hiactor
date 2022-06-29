@@ -1,4 +1,4 @@
-From 2a704ef3af620dfcbc3e9a2ca74edc462dfd61c6 Mon Sep 17 00:00:00 2001
+From 1fc9376a0801591c57de631b95682a3a57df4872 Mon Sep 17 00:00:00 2001
 From: goldenleaves <houbai.zzc@alibaba-inc.com>
 Date: Wed, 29 Jun 2022 08:41:35 +0000
 Subject: [PATCH] hiactor hackings
@@ -8,10 +8,10 @@ Subject: [PATCH] hiactor hackings
  include/seastar/core/task.hh       | 26 +++++++++++++++++++++++++-
  include/seastar/net/api.hh         | 21 +++++++++++++++++++++
  include/seastar/net/posix-stack.hh | 12 ++++++++++++
- src/core/reactor.cc                | 19 ++++++++++++++++---
+ src/core/reactor.cc                | 23 +++++++++++++++++++----
  src/http/httpd.cc                  |  1 +
  src/net/posix-stack.cc             |  6 ++++++
- 7 files changed, 84 insertions(+), 5 deletions(-)
+ 7 files changed, 87 insertions(+), 6 deletions(-)
 
 diff --git a/include/seastar/core/future.hh b/include/seastar/core/future.hh
 index 81ee1852..d26e043d 100644
@@ -147,7 +147,7 @@ index 00fd15ba..5e162850 100644
  
  class posix_data_source_impl final : public data_source_impl, private internal::buffer_allocator {
 diff --git a/src/core/reactor.cc b/src/core/reactor.cc
-index 22dc21b1..27e69f7d 100644
+index 22dc21b1..9fd1364b 100644
 --- a/src/core/reactor.cc
 +++ b/src/core/reactor.cc
 @@ -1103,7 +1103,10 @@ void cpu_stall_detector::update_config(cpu_stall_detector_config cfg) {
@@ -172,7 +172,18 @@ index 22dc21b1..27e69f7d 100644
          _report_at = 1;
          _run_started_at = now;
          _rearm_timer_at = now + _threshold * _report_at;
-@@ -3076,7 +3082,7 @@ class poller::registration_task final : public task {
+@@ -1201,7 +1207,9 @@ cpu_stall_detector_linux_perf_event::~cpu_stall_detector_linux_perf_event() {
+ void
+ cpu_stall_detector_linux_perf_event::arm_timer() {
+     uint64_t ns = (_threshold * _report_at + _slack) / 1ns;
+-    if (_enabled && _current_period == ns) [[likely]] {
++    /// hiactor hackings: fix '-Werror=attributes'
++    if (_enabled && _current_period == ns) {
++//    if (_enabled && _current_period == ns) [[likely]] {
+         // Common case - we're re-arming with the same period, the counter
+         // is already enabled.
+         _fd.ioctl(PERF_EVENT_IOC_RESET, 0);
+@@ -3076,7 +3084,7 @@ class poller::registration_task final : public task {
          delete this;
      }
      task* waiting_task() noexcept override { return nullptr; }
@@ -181,7 +192,7 @@ index 22dc21b1..27e69f7d 100644
          _p = nullptr;
      }
      void moved(poller* p) {
-@@ -3422,12 +3428,16 @@ future<size_t> readable_eventfd::wait() {
+@@ -3422,12 +3430,16 @@ future<size_t> readable_eventfd::wait() {
      });
  }
  
@@ -200,7 +211,7 @@ index 22dc21b1..27e69f7d 100644
  }
  
  }
-@@ -4244,6 +4254,9 @@ bool smp::pure_poll_queues() {
+@@ -4244,6 +4256,9 @@ bool smp::pure_poll_queues() {
  
  __thread reactor* local_engine;
  
