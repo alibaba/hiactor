@@ -23,7 +23,7 @@ jobs:
     - name: Install Dependencies
       run: |
         cd seastar && git clone https://github.com/scylladb/seastar.git
-        cd seastar && git checkout 8ed977
+        cd seastar && git checkout 225bee
         cd ../.. && sudo ./seastar/seastar/install-dependencies.sh
 
     - name: Configure CMake
@@ -36,7 +36,7 @@ jobs:
         mkdir build && cd build
         git config --global user.name "github-actions[bot]"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        cmake -DHiactor_CXX_DIALECT=gnu++17 -DHiactor_TESTING=ON -DHiactor_DEMOS=OFF ..
+        cmake -DHiactor_CXX_DIALECT=gnu++17 -DHiactor_DEBUG=ON -DHiactor_TESTING=ON -DHiactor_DEMOS=OFF ..
 
     - name: Build
       working-directory: ${{github.workspace}}/build
