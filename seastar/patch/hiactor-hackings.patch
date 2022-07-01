@@ -1,18 +1,17 @@
-From ea01803ed71c282a8ee1e9052b96c32a6eb20695 Mon Sep 17 00:00:00 2001
+From 1fc9376a0801591c57de631b95682a3a57df4872 Mon Sep 17 00:00:00 2001
 From: goldenleaves <houbai.zzc@alibaba-inc.com>
-Date: Tue, 21 Jun 2022 06:26:59 +0000
+Date: Wed, 29 Jun 2022 08:41:35 +0000
 Subject: [PATCH] hiactor hackings
 
 ---
  include/seastar/core/future.hh     |  4 +++-
- include/seastar/core/reactor.hh    |  3 ++-
  include/seastar/core/task.hh       | 26 +++++++++++++++++++++++++-
  include/seastar/net/api.hh         | 21 +++++++++++++++++++++
  include/seastar/net/posix-stack.hh | 12 ++++++++++++
- src/core/reactor.cc                | 17 ++++++++++++++---
+ src/core/reactor.cc                | 23 +++++++++++++++++++----
  src/http/httpd.cc                  |  1 +
  src/net/posix-stack.cc             |  6 ++++++
- 8 files changed, 84 insertions(+), 6 deletions(-)
+ 7 files changed, 87 insertions(+), 6 deletions(-)
 
 diff --git a/include/seastar/core/future.hh b/include/seastar/core/future.hh
 index 81ee1852..d26e043d 100644
@@ -29,27 +28,6 @@ index 81ee1852..d26e043d 100644
      void set_state(future_state&& state) noexcept {
          _state = std::move(state);
      }
-diff --git a/include/seastar/core/reactor.hh b/include/seastar/core/reactor.hh
-index 2b3a46f6..7b714343 100644
---- a/include/seastar/core/reactor.hh
-+++ b/include/seastar/core/reactor.hh
-@@ -367,7 +367,6 @@ class reactor {
- private:
-     static std::chrono::nanoseconds calculate_poll_time();
-     static void block_notifier(int);
--    void wakeup();
-     size_t handle_aio_error(internal::linux_abi::iocb* iocb, int ec);
-     bool flush_pending_aio();
-     steady_clock_type::time_point next_pending_aio() const noexcept;
-@@ -392,6 +391,8 @@ class reactor {
- public:
-     /// Register a user-defined signal handler
-     void handle_signal(int signo, noncopyable_function<void ()>&& handler);
-+    /// hiactor hacking
-+    void wakeup();
- 
- private:
-     class signals {
 diff --git a/include/seastar/core/task.hh b/include/seastar/core/task.hh
 index 37ca56b9..7d3a7c87 100644
 --- a/include/seastar/core/task.hh
@@ -169,10 +147,10 @@ index 00fd15ba..5e162850 100644
  
  class posix_data_source_impl final : public data_source_impl, private internal::buffer_allocator {
 diff --git a/src/core/reactor.cc b/src/core/reactor.cc
-index ebdd42a3..aaad8ebf 100644
+index 22dc21b1..9fd1364b 100644
 --- a/src/core/reactor.cc
 +++ b/src/core/reactor.cc
-@@ -1099,7 +1099,10 @@ void cpu_stall_detector::update_config(cpu_stall_detector_config cfg) {
+@@ -1103,7 +1103,10 @@ void cpu_stall_detector::update_config(cpu_stall_detector_config cfg) {
  
  void cpu_stall_detector::maybe_report() {
      if (_reported++ < _max_reports_per_minute) {
@@ -183,9 +161,9 @@ index ebdd42a3..aaad8ebf 100644
      }
  }
  // We use a tick at every timer firing so we can report suppressed backtraces.
-@@ -1147,7 +1150,10 @@ void cpu_stall_detector::arm_timer() {
+@@ -1154,7 +1157,10 @@ void cpu_stall_detector_posix_timer::arm_timer() {
  
- void cpu_stall_detector::start_task_run(std::chrono::steady_clock::time_point now) {
+ void cpu_stall_detector::start_task_run(sched_clock::time_point now) {
      if (now > _rearm_timer_at) {
 +        /// hiactor hacking
 +        #ifdef HIACTOR_CPU_STALL_REPORT
@@ -194,7 +172,18 @@ index ebdd42a3..aaad8ebf 100644
          _report_at = 1;
          _run_started_at = now;
          _rearm_timer_at = now + _threshold * _report_at;
-@@ -2922,7 +2928,7 @@ class poller::registration_task final : public task {
+@@ -1201,7 +1207,9 @@ cpu_stall_detector_linux_perf_event::~cpu_stall_detector_linux_perf_event() {
+ void
+ cpu_stall_detector_linux_perf_event::arm_timer() {
+     uint64_t ns = (_threshold * _report_at + _slack) / 1ns;
+-    if (_enabled && _current_period == ns) [[likely]] {
++    /// hiactor hackings: fix '-Werror=attributes'
++    if (_enabled && _current_period == ns) {
++//    if (_enabled && _current_period == ns) [[likely]] {
+         // Common case - we're re-arming with the same period, the counter
+         // is already enabled.
+         _fd.ioctl(PERF_EVENT_IOC_RESET, 0);
+@@ -3076,7 +3084,7 @@ class poller::registration_task final : public task {
          delete this;
      }
      task* waiting_task() noexcept override { return nullptr; }
@@ -203,7 +192,7 @@ index ebdd42a3..aaad8ebf 100644
          _p = nullptr;
      }
      void moved(poller* p) {
-@@ -3268,12 +3274,16 @@ future<size_t> readable_eventfd::wait() {
+@@ -3422,12 +3430,16 @@ future<size_t> readable_eventfd::wait() {
      });
  }
  
@@ -222,14 +211,16 @@ index ebdd42a3..aaad8ebf 100644
  }
  
  }
-@@ -4057,6 +4067,7 @@ bool smp::pure_poll_queues() {
- }
+@@ -4244,6 +4256,9 @@ bool smp::pure_poll_queues() {
  
  __thread reactor* local_engine;
-+__thread execution_context* local_ec{nullptr};
  
++/// hiactor hacking
++__thread execution_context* local_ec{nullptr};
++
  void report_exception(std::string_view message, std::exception_ptr eptr) noexcept {
      seastar_logger.error("{}: {}", message, eptr);
+ }
 diff --git a/src/http/httpd.cc b/src/http/httpd.cc
 index 774bb84f..1ea29a75 100644
 --- a/src/http/httpd.cc

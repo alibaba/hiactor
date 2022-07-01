@@ -115,7 +115,7 @@ Note that there are some rules which should be followed when defining an actor c
 - A customized actor class must be defined in a c++ header file with the suffix `.act.h`.
 - The annotation `ANNOTATION(actor:impl)` must be specified in actor class definition.
 - A customized actor class must be derived from the template actor `reentrant_actor<C>`, where `C` denotes
-  the [reentrancy concurrency] (https://en.wikipedia.org/wiki/Reentrancy_(computing)) of this actor,
+  the [reentrancy concurrency](https://en.wikipedia.org/wiki/Reentrancy_(computing)) of this actor,
   i.e., the maximum number of messages an actor can process concurrently. PS: nested inheritance is allowed: 
   you can define an actor class `a` derived from `reentrant_actor<C>` and another actor `b` derived from `a`.
   For convenience, Hiactor provides a template actor alias `stateless_actor` with `reentrant_actor<C=MAX_INT>` to
