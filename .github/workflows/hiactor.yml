@@ -22,9 +22,8 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        cd seastar && git clone https://github.com/scylladb/seastar.git
-        cd seastar && git checkout 225bee
-        cd ../.. && sudo ./seastar/seastar/install-dependencies.sh
+        git submodule update --init --recursive
+        sudo ./seastar/seastar/install-dependencies.sh
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
