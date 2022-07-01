@@ -102,11 +102,6 @@ if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
     COMMAND git clone -c advice.detachedHead=false -q ${Hiactor_SOURCE_DIR}/seastar/seastar
     WORKING_DIRECTORY ${Hiactor_BINARY_DIR})
 
-  message ("-- Copying Seastar module code source into build dir ...")
-  execute_process (
-    COMMAND git clone -c advice.detachedHead=false -q ${Hiactor_SOURCE_DIR}/seastar/seastar/dpdk
-    WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
-
   message ("-- Applying Seastar patch from Hiactor ...")
   execute_process (
     COMMAND git am -q ${Hiactor_SOURCE_DIR}/seastar/patch/hiactor-hackings.patch
@@ -114,6 +109,13 @@ if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
 endif ()
 
 if (Hiactor_DPDK)
+  if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/dpdk/kernel)
+    message ("-- Copying dpdk code source into build dir ...")
+    execute_process (
+      COMMAND git clone -c advice.detachedHead=false -q ${Hiactor_SOURCE_DIR}/seastar/seastar/dpdk
+      WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+  endif ()
+
   if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
     set (dpdk_quadruple arm64-armv8a-linuxapp-gcc)
   else()
