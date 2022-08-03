@@ -59,8 +59,27 @@ struct address {
         memcpy(data, &shard_id, GShardIdInBytes);
         length = GShardIdInBytes;
     }
-    inline uint32_t get_shard_id() {
+
+    inline uint32_t get_shard_id() const {
         return load_unaligned_int<uint32_t>(data);
+    }
+
+    /// Set/Get the actor type id to which the target actor method really belongs.
+    ///
+    /// In Hiactor, we need to support polymorphism and allow users to define inheritance relationships
+    /// between their customized actors. If a derived actor B does not override a virtual method `func`
+    /// defined in its parent actor A, calling `func` from B will set this field with A's actor type id.
+    /// When actor message is processed in B's `do_work`, this field can be used to distinguish whose
+    /// polymorphic method should be called between A and B.
+    ///
+    /// The method actor type is stored in the tail of `addr`.
+    inline void set_method_actor_tid(uint16_t method_actor_type) {
+        auto* offset = data + GMaxAddrLength - GActorTypeInBytes;
+        memcpy(offset, &method_actor_type, GActorTypeInBytes);
+    }
+    inline uint16_t get_method_actor_tid() const {
+        auto* offset = data + GMaxAddrLength - GActorTypeInBytes;
+        return load_unaligned_int<uint16_t>(offset);
     }
 };
 

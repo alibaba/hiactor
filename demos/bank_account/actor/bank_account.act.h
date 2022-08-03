@@ -18,10 +18,10 @@
 #include <hiactor/core/actor-template.hh>
 #include <hiactor/util/data_type.hh>
 
-class ANNOTATION(actor:impl) bank_account : public hiactor::stateful_actor {
+class ANNOTATION(actor:impl) bank_account : public hiactor::actor {
     int balance = 0;
 public:
-    bank_account(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr) : hiactor::stateful_actor(exec_ctx, addr) {}
+    bank_account(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr) : hiactor::actor(exec_ctx, addr, false) {}
     ~bank_account() override = default;
 
     /// Withdraw from bank account by `amount`, return the remaining balance after withdrawing,

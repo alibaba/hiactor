@@ -30,22 +30,18 @@ private:
         addr.length = src_addr.length;
 
         auto offset = addr.data + addr.length;
-        memcpy(offset, addr.data + GMaxAddrLength - GActorTypeInBytes, GActorTypeInBytes);
+        memcpy(offset, &actor_type, GActorTypeInBytes);
         offset += GActorTypeInBytes;
         memcpy(offset, &actor_id, GActorIdInBytes);
         addr.length += GLocalActorAddrLength;
     }
 protected:
+    int16_t actor_type = 0;
     address addr;
-
-    explicit reference_base() = default;
-
-    void set_type_id(uint16_t actor_type) {
-        auto* offset = addr.data + GMaxAddrLength - GActorTypeInBytes;
-        memcpy(offset, &actor_type, GActorTypeInBytes);
-    }
-
+    reference_base() = default;
     friend class scope_builder;
+public:
+    virtual ~reference_base() = default;
 };
 
 /// Get the actor group type id.
@@ -132,14 +128,16 @@ public:
     }
 
     template <typename T>
-    T build_ref(uint32_t actor_id) {
+    std::enable_if_t<(std::is_base_of_v<reference_base, T> && std::is_default_constructible_v<T>), T>
+    build_ref(uint32_t actor_id) {
         T reference;
         reference.make_address(addr, actor_id);
         return reference;
     }
 
     template <typename T>
-    T* new_ref(uint32_t actor_id) {
+    std::enable_if_t<(std::is_base_of_v<reference_base, T> && std::is_default_constructible_v<T>), T*>
+    new_ref(uint32_t actor_id) {
         auto* p_ref = new T();
         p_ref->make_address(addr, actor_id);
         return p_ref;

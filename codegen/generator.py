@@ -46,16 +46,21 @@ def generate_actg_type_getter_func(actg_info):
 def generate_actor_ref_class_def(act_info):
     method_decls = ""
     for method in act_info.methods:
-        method_decls += "\t{return_type} {method_name}({args});\n".format(
+        method_decls += "\t{vs}{return_type} {method_name}({args}){os}{end}\n".format(
+            vs=method.get_virtual_specifier(),
             return_type=method.return_info.return_type,
             method_name=method.method_name,
-            args=method.format_args())
-    ref_class_def = "class {ref_name} : public hiactor::reference_base {{\n" \
+            args=method.format_args(),
+            os=method.get_override_specifier(),
+            end=method.get_decl_end())
+    base_ref_name = act_info.base_info.get_ref_name()
+    ref_class_def = "class {ref_name} : public {base} {{\n" \
                     "public:\n" \
                     "\t{ref_name}();\n" \
+                    "\t~{ref_name}() override = default;\n" \
                     "\t/// actor methods\n" \
                     "{methods}" \
-                    "}};\n\n".format(ref_name=act_info.ref_name, methods=method_decls)
+                    "}};\n\n".format(ref_name=act_info.ref_name, methods=method_decls, base=base_ref_name)
     return ref_class_def
 
 
@@ -72,10 +77,12 @@ def generate_actor_method_enum(act_info):
 
 
 def generate_actor_ref_method_defs(act_info):
-    construction_def = "{name}::{name}() : hiactor::reference_base() {{ set_type_id({actor_tid}); }}\n\n".format(
-        name=act_info.ref_name, actor_tid=act_info.type_id)
+    construction_def = "{name}::{name}() : {base}() {{ actor_type = {actor_tid}; }}\n\n".format(
+        name=act_info.ref_name, base=act_info.base_info.get_ref_name(), actor_tid=act_info.type_id)
     method_defs = []
     for method in act_info.methods:
+        if method.is_pure_virtual:
+            continue
         client_func_arguments = ["addr", method.enum_type_name()]
         optional_data_type = ""
         for arg in method.args:
@@ -89,18 +96,31 @@ def generate_actor_ref_method_defs(act_info):
                 result_type=method.return_info.template_type,
                 opt_data_type=optional_data_type,
                 args=", ".join(client_func_arguments))
-        method_defs.append("{return_type} {class_name}::{method_name}({method_args}) {{\n\t{client_func}\n}}\n".format(
-            return_type=method.return_info.return_type,
-            class_name=act_info.ref_name,
-            method_name=method.method_name,
-            method_args=method.format_args(),
-            client_func=actor_client_func))
+        method_def = "{return_type} {class_name}::{method_name}({method_args}) {{\n" \
+                     "\taddr.set_method_actor_tid({actor_tid});\n" \
+                     "\t{client_func}\n" \
+                     "}}\n".format(return_type=method.return_info.return_type,
+                                   class_name=act_info.ref_name,
+                                   method_name=method.method_name,
+                                   method_args=method.format_args(),
+                                   actor_tid=act_info.type_id,
+                                   client_func=actor_client_func)
+        method_defs.append(method_def)
     return construction_def + "\n".join(method_defs) + "\n"
 
 
 def generate_actor_do_work(act_info):
+    base_action = ""
+    base_info = act_info.base_info
+    if not base_info.is_template:
+        base_action = "\tif (__builtin_expect(msg->hdr.addr.get_method_actor_tid() != actor_type_id(), false)) {{\n" \
+                      "\t\treturn {base}::do_work(msg);\n" \
+                      "\t}}\n".format(base=base_info.get_actor_name())
+
     method_processors = ""
     for method in act_info.methods:
+        if method.is_pure_virtual:
+            continue
         if method.return_info.return_type != "void":
             return_specifier = "return "
             after_calling = ".then_wrapped([msg] (seastar::future<{result_type}> fut) {{\n" \
@@ -146,11 +166,13 @@ def generate_actor_do_work(act_info):
 
         method_processors += "\t\tcase {method_enum}: {{\n" \
                              "{stmt}" \
-                             "\t\t}}\n".format(method_enum=method.enum_type_name(), stmt=calling+after_calling)
-
+                             "\t\t}}\n".format(method_enum=method.enum_type_name(), stmt=calling + after_calling)
     method_processors += "\t\tdefault: {\n\t\t\treturn seastar::make_ready_future<hiactor::stop_reaction>(" \
                          "hiactor::stop_reaction::yes);\n\t\t}\n"
+
     do_work_def = "seastar::future<hiactor::stop_reaction> {class_name}::do_work(hiactor::actor_message* msg) {{\n" \
-                  "\tswitch (msg->hdr.behavior_tid) {{\n{processors}\t}}\n" \
-                  "}}\n".format(class_name=act_info.name, processors=method_processors)
+                  "{base_action}" \
+                  "\tswitch (msg->hdr.behavior_tid) {{\n" \
+                  "{processors}\t}}\n" \
+                  "}}\n".format(class_name=act_info.name, base_action=base_action, processors=method_processors)
     return do_work_def

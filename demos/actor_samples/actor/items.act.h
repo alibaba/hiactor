@@ -25,7 +25,7 @@
 /// you can also separate your customized actors into different ".act.h" headers
 /// according to your needs.
 ///
-/// Each customized actor should be derived from the temple actor types in "hiactor/core/actor-template.hh"
+/// Each customized actor should be derived from the "hiactor::actor", which is defined in "hiactor/core/actor-template.hh".
 /// Each customized actor should use an annotation "ANNOTATION(actor:impl)" to identify itself.
 /// Each actor method in customized actors should be annotated by "ANNOTATION(actor:method)".
 /// Each actor method should not contain more than one argument.
@@ -45,13 +45,13 @@
 
 namespace item {
 
-class ANNOTATION(actor:impl) generic_item : public hiactor::stateful_actor {
+class ANNOTATION(actor:impl) generic_item : public hiactor::actor {
 protected:
     unsigned _item_id;
     int _stock = 10; // init stock of 10.
 public:
     generic_item(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr)
-        : hiactor::stateful_actor(exec_ctx, addr) {
+        : hiactor::actor(exec_ctx, addr, false) {
         _item_id = actor_id();
     }
     ~generic_item() override = default;

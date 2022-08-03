@@ -87,6 +87,12 @@ def process_one_actor(arg):
     with open(ref_h_filepath, 'w') as fp:
         fp.write(get_license())
         fp.write('#include "%s"\n' % arg.h_file)
+        ref_includes = set()
+        for act in act_list:
+            if act.base_info.ref_include_path != "":
+                ref_includes.add(act.base_info.ref_include_path)
+        for ref_include in ref_includes:
+            fp.write('#include "%s"\n' % ref_include)
         for act in act_list:
             ref_class_def = generate_actor_ref_class_def(act)
             write_defs_with_namespace(fp, act.ns_list, ref_class_def)

@@ -24,10 +24,10 @@ enum : uint8_t {
     k_count_increase = 1,
 };
 
-count_ref::count_ref() : hiactor::reference_base() { set_type_id(0); }
+count_ref::count_ref() : hiactor::reference_base() { actor_type = 0; }
 
 seastar::future<hiactor::Integer> count_ref::check() {
-	
+	addr.set_method_actor_tid(0);
     return hiactor::actor_client::request<hiactor::Integer>(addr, k_count_check);
 }
 
