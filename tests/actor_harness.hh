@@ -30,11 +30,11 @@ public:
     seastar::future<hiactor::Integer> increase(hiactor::Integer &&amount);
 };
 
-class ANNOTATION(actor : impl) count : public hiactor::stateful_actor {
+class ANNOTATION(actor : impl) count : public hiactor::actor {
     int count_res = 0;
 
 public:
-    count(hiactor::actor_base *exec_ctx, const hiactor::byte_t *addr) : hiactor::stateful_actor(exec_ctx, addr) {}
+    count(hiactor::actor_base *exec_ctx, const hiactor::byte_t *addr) : hiactor::actor(exec_ctx, addr, false) {}
     ~count() override = default;
 
     /// increase count by `amount`, return the remaining count after increase,

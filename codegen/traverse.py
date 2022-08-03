@@ -24,6 +24,13 @@ global_act_tid = 0
 act_tid_mutex = threading.Lock()
 
 
+def get_type_node(node):
+    for child in node.get_children():
+        if child.kind == CursorKind.TYPE_REF:
+            return get_type_node(child.get_definition())
+    return node
+
+
 def check_attribute(node, attr):
     for child in node.get_children():
         if child.kind == CursorKind.ANNOTATE_ATTR and child.spelling == attr:
@@ -48,8 +55,30 @@ def is_derived_from_template_actor_group(node):
     return is_valid
 
 
-def is_template_actor_type(node):
-    return node.spelling in ["reentrant_actor", "stateful_actor", "stateless_actor"]
+def compute_ref_include_path(current_file, base_file):
+    common_len = [x[0] == x[1] for x in zip(current_file, base_file)].index(False)
+    actor_include_path = base_file[common_len:]
+    if actor_include_path == "":
+        return ""
+    elif actor_include_path.endswith(".act.h"):
+        return actor_include_path.split(".")[0] + "_ref.act.autogen.h"
+    else:
+        raise RuntimeError("Wrong location of actor: {}, file name must end with .act.h".format(base_file))
+
+
+def get_base_actor_info(node, base_node):
+    base_type_node = get_type_node(base_node)
+    base_type_name = base_type_node.type.spelling
+    is_template = (base_type_name == "hiactor::actor")
+
+    current_file = node.location.file.name
+    base_file = base_type_node.location.file.name
+
+    ref_include_path = ""
+    if (not is_template) and (current_file != base_file):
+        ref_include_path = compute_ref_include_path(current_file, base_file)
+
+    return BaseActorInfo(base_type_name, is_template, ref_include_path)
 
 
 def traverse_actor_group_types(node, filepath, actg_list, ns_list):
@@ -97,29 +126,38 @@ def check_and_parse_actor_method(class_name, node):
         raise RuntimeError("Method {} in actor class {} should not contains more than one argument!"
                            .format(node.spelling, class_name))
 
-    return ActorMethodInfo(class_name, node.spelling, return_info, arguments)
+    override_specifier = ""
+    for child in node.get_children():
+        if child.kind == CursorKind.CXX_OVERRIDE_ATTR:
+            override_specifier = "override"
+        elif child.kind == CursorKind.CXX_FINAL_ATTR:
+            override_specifier = "final"
+
+    return ActorMethodInfo(
+        class_name,
+        node.spelling,
+        return_info,
+        arguments,
+        node.is_virtual_method(),
+        node.is_pure_virtual_method(),
+        override_specifier)
 
 
-def traverse_actor_methods(node):
-    frontiers = [node]
+def traverse_actor_components(node):
     methods = []
-    method_names = []
-    while len(frontiers) > 0:
-        next_frontiers = []
-        for front_node in frontiers:
-            for child in front_node.get_children():
-                if child.kind == CursorKind.CXX_METHOD and check_attribute(child, "actor:method"):
-                    if child.spelling not in method_names and not child.is_pure_virtual_method():
-                        methods.append(check_and_parse_actor_method(node.spelling, child))
-                        method_names.append(child.spelling)
-                elif child.kind == CursorKind.CXX_BASE_SPECIFIER:
-                    if not is_template_actor_type(child.get_definition()):
-                        next_frontiers.append(child.get_definition())
-        frontiers = next_frontiers
+    base_info = None
+    for child in node.get_children():
+        if child.kind == CursorKind.CXX_METHOD and check_attribute(child, "actor:method"):
+            methods.append(check_and_parse_actor_method(node.spelling, child))
+        elif child.kind == CursorKind.CXX_BASE_SPECIFIER:
+            if base_info is not None:
+                raise RuntimeError("Invalid actor: {}, each actor must be exactly derived from one base actor!"
+                                   .format(node.spelling))
+            base_info = get_base_actor_info(node, child.get_definition())
 
     def get_key(method):
         return method.method_name
-    return sorted(methods, key=get_key)
+    return sorted(methods, key=get_key), base_info
 
 
 def traverse_actor_types(node, filepath, act_list, ns_list):
@@ -130,8 +168,8 @@ def traverse_actor_types(node, filepath, act_list, ns_list):
             tid = global_act_tid
             global_act_tid += 1
             act_tid_mutex.release()
-            methods = traverse_actor_methods(node)
-            act_list.append(ActorCodeGenInfo(node.spelling, tuple(ns_list), tid, methods))
+            methods, base_info = traverse_actor_components(node)
+            act_list.append(ActorCodeGenInfo(node.spelling, tuple(ns_list), tid, methods, base_info))
     if node.kind in [CursorKind.TRANSLATION_UNIT, CursorKind.NAMESPACE]:
         if node.kind == CursorKind.NAMESPACE:
             ns_list.append(node.spelling)

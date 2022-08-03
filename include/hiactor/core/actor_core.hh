@@ -41,7 +41,7 @@ using stop_reaction = seastar::bool_class<stop_reaction_tag>;
 class actor_factory;
 class root_actor_group;
 class actor_group;
-template <uint32_t> class reentrant_actor;
+class actor;
 
 class actor_base : public seastar::execution_context, public seastar::task {
     clock_unit _unused_quota{};
@@ -75,7 +75,7 @@ private:
     friend class actor_factory;
     friend class root_actor_group;
     friend class actor_group;
-    template <uint32_t> friend class reentrant_actor;
+    friend class actor;
 public:
     explicit actor_base(actor_base* exec_ctx, const byte_t* addr);
     explicit actor_base(actor_base* exec_ctx);

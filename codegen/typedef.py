@@ -50,23 +50,56 @@ class ActorMethodArgInfo:
 
 
 class ActorMethodInfo:
-    def __init__(self, class_name, method_name, return_info, args):
+    def __init__(self, class_name, method_name, return_info, args,
+                 is_virtual, is_pure_virtual, override_specifier):
         self.class_name = class_name
         self.method_name = method_name
         self.return_info = return_info
         self.args = args
+        self.is_virtual = is_virtual
+        self.is_pure_virtual = is_pure_virtual
+        self.override_specifier = override_specifier
 
     def format_args(self):
-        return ", ".join(["{type} {name}".format(type=arg.arg_type, name=arg.arg_name) for arg in self.args])
+        return ", ".join(["{type}{name}".format(type=arg.arg_type, name=arg.arg_name) for arg in self.args])
 
     def enum_type_name(self):
         return "k_{}_{}".format(self.class_name, self.method_name)
 
+    def get_virtual_specifier(self):
+        return "virtual " if self.is_virtual else ""
+
+    def get_override_specifier(self):
+        return " {}".format(self.override_specifier) if self.override_specifier != "" else ""
+
+    def get_decl_end(self):
+        return " = 0;" if self.is_pure_virtual else ";"
+
+
+class BaseActorInfo:
+    def __init__(self, type_name, is_template, ref_include_path):
+        self.is_template = is_template
+        self.type_name = "::" + type_name
+        self.ref_include_path = ref_include_path
+
+    def get_actor_name(self):
+        if self.is_template:
+            return "::hiactor::actor"
+        else:
+            return self.type_name
+
+    def get_ref_name(self):
+        if self.is_template:
+            return "::hiactor::reference_base"
+        else:
+            return self.type_name + "_ref"
+
 
 class ActorCodeGenInfo:
-    def __init__(self, name, ns_list, type_id, methods):
+    def __init__(self, name, ns_list, type_id, methods, base_info):
         self.name = name
         self.ref_name = name + "_ref"
         self.ns_list = ns_list
         self.type_id = type_id
         self.methods = methods
+        self.base_info = base_info

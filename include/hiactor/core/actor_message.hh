@@ -59,8 +59,24 @@ struct address {
         memcpy(data, &shard_id, GShardIdInBytes);
         length = GShardIdInBytes;
     }
-    inline uint32_t get_shard_id() {
+
+    inline uint32_t get_shard_id() const {
         return load_unaligned_int<uint32_t>(data);
+    }
+
+    // Set/Get the actor type id to which the target actor method really belongs.
+    //
+    // This is useful to support actor polymorphism and distinguish actor method calls
+    // of parent and inherited actors.
+    //
+    // The method actor type is stored in the tail of `addr`.
+    inline void set_method_actor_tid(uint16_t method_actor_type) {
+        auto* offset = data + GMaxAddrLength - GActorTypeInBytes;
+        memcpy(offset, &method_actor_type, GActorTypeInBytes);
+    }
+    inline uint16_t get_method_actor_tid() const {
+        auto* offset = data + GMaxAddrLength - GActorTypeInBytes;
+        return load_unaligned_int<uint16_t>(offset);
     }
 };
 

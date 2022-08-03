@@ -49,3 +49,5 @@ add_subdirectory (thread_pool_sample)
 if (Hiactor_GPU_ENABLE)
   add_subdirectory (gpu_pool_sample)
 endif()
+
+#add_subdirectory (tests)

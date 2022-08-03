@@ -61,10 +61,12 @@ First, Actors and their methods are defined in a `actor_name.act.h` file.
 #include <hiactor/core/actor-template.hh>
 #include <hiactor/util/data_type.hh>
 
-class ANNOTATION(actor:impl) bank_account : public hiactor::stateful_actor {
+class ANNOTATION(actor:impl) bank_account : public hiactor::actor {
     int balance = 0;
 public:
-    bank_account(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr) : hiactor::stateful_actor(exec_ctx, addr) {}
+    bank_account(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr) : hiactor::actor(exec_ctx, addr) {
+        set_max_concurrency(1); // set max concurrency for task reentrancy
+    }
     ~bank_account() override = default;
 
     /// Withdraw from this bank account by `amount`, return the remaining balance after withdrawing,
@@ -114,10 +116,10 @@ seastar::future<hiactor::Integer> bank_account::check() {
 Note that there are some rules which should be followed when defining an actor class (in `actor_name.act.h`):
 - A customized actor class must be defined in a c++ header file with the suffix `.act.h`.
 - The annotation `ANNOTATION(actor:impl)` must be specified in actor class definition.
-- A customized actor class must be derived from the template actor `reentrant_actor<C>`, where `C` denotes
-  the [reentrancy concurrency](https://en.wikipedia.org/wiki/Reentrancy_(computing)) of this actor,
-  i.e., the maximum number of messages an actor can process concurrently. PS: nested inheritance is allowed: 
-  you can define an actor class `a` derived from `reentrant_actor<C>` and another actor `b` derived from `a`.
+- A customized actor class must be derived from the template `actor` class, the `set_max_concurrency` method
+  can be used to set the max [reentrancy concurrency](https://en.wikipedia.org/wiki/Reentrancy_(computing)) of this actor,
+  notes that `set_max_concurrency(1)` means disable reentrancy. PS: nested inheritance is allowed:
+  you can define an actor class `a` derived from `actor` and another actor `b` derived from `a`.
   For convenience, Hiactor provides a template actor alias `stateless_actor` with `reentrant_actor<C=MAX_INT>` to
   support unlimited reentrancy, and another `stateful_actor` with `reentrant_actor<C=1>` to disable reentrancy.
 - The constructor parameters of an actor class must be `(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr)`
