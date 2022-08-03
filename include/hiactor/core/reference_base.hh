@@ -40,6 +40,8 @@ protected:
     address addr;
     reference_base() = default;
     friend class scope_builder;
+public:
+    virtual ~reference_base() = default;
 };
 
 /// Get the actor group type id.

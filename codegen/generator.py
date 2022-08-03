@@ -57,6 +57,7 @@ def generate_actor_ref_class_def(act_info):
     ref_class_def = "class {ref_name} : public {base} {{\n" \
                     "public:\n" \
                     "\t{ref_name}();\n" \
+                    "\t~{ref_name}() override = default;\n" \
                     "\t/// actor methods\n" \
                     "{methods}" \
                     "}};\n\n".format(ref_name=act_info.ref_name, methods=method_decls, base=base_ref_name)
