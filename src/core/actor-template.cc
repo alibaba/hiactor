@@ -188,7 +188,7 @@ void actor_group::notify_child_stopped() {
 
 
 actor::actor(actor_base* exec_ctx, const byte_t* addr, bool reentrant)
-    : actor_base(exec_ctx, addr), _max_concurrency(reentrant? UINT32_MAX : 1) {
+    : actor_base(exec_ctx, addr), _max_concurrency(reentrant ? UINT32_MAX : 1) {
 }
 
 void actor::set_max_concurrency(uint32_t concurrency) {
