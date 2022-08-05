@@ -14,7 +14,7 @@
  */
 
 #include "actor/item_groups.actg.h"
-#include "generated/items_ref.act.autogen.h"
+#include "generated/actor/items_ref.act.autogen.h"
 #include <hiactor/core/actor-app.hh>
 #include <seastar/core/print.hh>
 #include <seastar/core/sleep.hh>

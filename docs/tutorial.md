@@ -116,12 +116,10 @@ seastar::future<hiactor::Integer> bank_account::check() {
 Note that there are some rules which should be followed when defining an actor class (in `actor_name.act.h`):
 - A customized actor class must be defined in a c++ header file with the suffix `.act.h`.
 - The annotation `ANNOTATION(actor:impl)` must be specified in actor class definition.
-- A customized actor class must be derived from the template `actor` class, the `set_max_concurrency` method
+- A customized actor class must be derived from the base `hiactor::actor` class, the `set_max_concurrency` method
   can be used to set the max [reentrancy concurrency](https://en.wikipedia.org/wiki/Reentrancy_(computing)) of this actor,
   notes that `set_max_concurrency(1)` means disable reentrancy. PS: nested inheritance is allowed:
-  you can define an actor class `a` derived from `actor` and another actor `b` derived from `a`.
-  For convenience, Hiactor provides a template actor alias `stateless_actor` with `reentrant_actor<C=MAX_INT>` to
-  support unlimited reentrancy, and another `stateful_actor` with `reentrant_actor<C=1>` to disable reentrancy.
+  you can define an actor class `a` derived from `hiactor::actor` and another actor `b` derived from `a`.
 - The constructor parameters of an actor class must be `(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr)`
   and should be forward to the base class construction func. These parameters are automatically generated.
   The registration and creation of actors are managed by the Hiactor system and thus transparent to programmers.
@@ -179,15 +177,11 @@ include ($install_prefix/hiactor_codegen/ActorAutoGen.cmake)
 # actor codegen cmake func
 # @param "actor-autogen": specify the cmake target for actor codegen.
 # @param "actor_gen_files": specify the generated actor definition files.
-# @param "ACTOR_SOURCE_DIR": set the actor source dir that contains customized actor files.
-# @param "HIACTOR_INCLUDE": set the hiactor include dir.
-# @param "SYSTEM_INCLUDE": set other system include dirs with a semicolon-separated list if used by your project.
-# @param "USER_INCLUDE": set the current project include dirs with a semicolon-separated list.
+# @param "SOURCE_DIR": set the source dir that contains use-defined actor files.
+# @param "INCLUDE_PATHS": set the include directories to search headers with a comma-separated list.
 hiactor_codegen (actor_autogen actor_gen_files
-  ACTOR_SOURCE_DIR $my_app_dir
-  HIACTOR_INCLUDE $install_prefix/include
-  SYSTEM_INCLUDE ""
-  USER_INCLUDE $my_app_dir)
+  SOURCE_DIR $my_app_dir
+  INCLUDE_PATHS $install_prefix/include,$my_app_dir)
 ```
 
 Actor Addressing
@@ -294,10 +288,8 @@ find_package (Hiactor REQUIRED)
 include ($install_prefix/hiactor_codegen/ActorAutoGen.cmake)
 
 hiactor_codegen (actor_autogen actor_gen_files
-  ACTOR_SOURCE_DIR $my_app_dir
-  HIACTOR_INCLUDE $install_prefix/include
-  SYSTEM_INCLUDE ""
-  USER_INCLUDE $my_app_dir) 
+  SOURCE_DIR $my_app_dir
+  INCLUDE_PATHS $install_prefix/include,$my_app_dir) 
 
 add_executable (bank_account_example
   main.cc

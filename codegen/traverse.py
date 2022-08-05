@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import threading
 from clang.cindex import AccessSpecifier, CursorKind, TypeKind
 from typedef import *
@@ -55,17 +56,6 @@ def is_derived_from_template_actor_group(node):
     return is_valid
 
 
-def compute_ref_include_path(current_file, base_file):
-    common_len = [x[0] == x[1] for x in zip(current_file, base_file)].index(False)
-    actor_include_path = base_file[common_len:]
-    if actor_include_path == "":
-        return ""
-    elif actor_include_path.endswith(".act.h"):
-        return actor_include_path.split(".")[0] + "_ref.act.autogen.h"
-    else:
-        raise RuntimeError("Wrong location of actor: {}, file name must end with .act.h".format(base_file))
-
-
 def get_base_actor_info(node, base_node):
     base_type_node = get_type_node(base_node)
     base_type_name = base_type_node.type.spelling
@@ -74,11 +64,14 @@ def get_base_actor_info(node, base_node):
     current_file = node.location.file.name
     base_file = base_type_node.location.file.name
 
-    ref_include_path = ""
+    location_file = ""
     if (not is_template) and (current_file != base_file):
-        ref_include_path = compute_ref_include_path(current_file, base_file)
+        if base_file.endswith(".act.h"):
+            location_file = base_file
+        else:
+            raise RuntimeError("Wrong location of base actor: {}, file name must end with .act.h".format(base_file))
 
-    return BaseActorInfo(base_type_name, is_template, ref_include_path)
+    return BaseActorInfo(base_type_name, is_template, location_file)
 
 
 def traverse_actor_group_types(node, filepath, actg_list, ns_list):

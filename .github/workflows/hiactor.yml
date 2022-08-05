@@ -40,7 +40,8 @@ jobs:
     - name: Build
       working-directory: ${{github.workspace}}/build
       run: |
-        make -j10
+        export BUILD_CONCURRENCY=$(cat < /proc/cpuinfo | grep -c "processor")
+        make -j${BUILD_CONCURRENCY}
       
     - name: Test
       working-directory: ${{github.workspace}}/build

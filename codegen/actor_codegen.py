@@ -14,7 +14,6 @@
 
 import subprocess
 import sys
-import os
 import shutil
 import argparse
 import clang.cindex
@@ -36,20 +35,24 @@ def process_actor_groups(process_args):
     p.join()
 
 
-def process_one_actor_group(arg):
-    print('Generating for %s ...' % arg.h_file)
-    h_filepath = os.path.join(arg.actor_source_dir, arg.h_file)
-    cc_filepath = os.path.join(arg.actor_source_dir, arg.autogen_cc_file)
+def process_one_actor_group(arg: ActorGroupProcessArgument):
+    include_path = os.path.relpath(arg.filepath, arg.source_dir)
+    print('Generating for %s ...' % include_path)
+
     index = clang.cindex.Index.create()
-    unit = index.parse(h_filepath, ['-nostdinc++', '-x', 'c++', '-std=gnu++14'] + arg.include_list)
+    unit = index.parse(arg.filepath, ['-nostdinc++', '-x', 'c++', '-std=gnu++17'] + arg.include_list)
 
     actg_list = []
     ns_list = []
-    traverse_actor_group_types(unit.cursor, h_filepath, actg_list, ns_list)
+    traverse_actor_group_types(unit.cursor, arg.filepath, actg_list, ns_list)
 
-    with open(cc_filepath, 'w') as fp:
+    cur_autogen_dir = os.path.join(arg.source_dir, "generated", arg.rel_dir)
+    if not os.path.exists(cur_autogen_dir):
+        os.mkdir(cur_autogen_dir)
+    autogen_cc_filepath = os.path.join(cur_autogen_dir, arg.autogen_cc_file)
+    with open(autogen_cc_filepath, 'w') as fp:
         fp.write(get_license())
-        fp.write('#include "%s"\n' % arg.h_file)
+        fp.write('#include "%s"\n' % include_path)
         fp.write('#include <hiactor/core/actor_factory.hh>\n')
 
         for actg_info in actg_list:
@@ -61,7 +64,7 @@ def process_one_actor_group(arg):
             var_name = get_name_with_namespace(actg_info.name, actg_info.ns_list, "_")
             fp.write(generate_auto_registration(class_name, var_name, actg_info.type_id))
         fp.write("\n} // namespace auto_registration\n")
-    os.chmod(cc_filepath, S_IREAD | S_IRGRP | S_IROTH)
+    os.chmod(autogen_cc_filepath, S_IREAD | S_IRGRP | S_IROTH)
 
 
 def process_actors(process_args):
@@ -71,39 +74,47 @@ def process_actors(process_args):
     p.join()
 
 
-def process_one_actor(arg):
-    print('Generating for %s ...' % arg.h_file)
-    h_filepath = os.path.join(arg.actor_source_dir, arg.h_file)
-    ref_h_filepath = os.path.join(arg.actor_source_dir, arg.ref_h_file)
-    cc_filepath = os.path.join(arg.actor_source_dir, arg.autogen_cc_file)
+def process_one_actor(arg: ActorProcessArgument):
+    include_path = os.path.relpath(arg.filepath, arg.source_dir)
+    print('Generating for %s ...' % include_path)
+
     index = clang.cindex.Index.create()
-    unit = index.parse(h_filepath, ['-nostdinc++', '-x', 'c++', '-std=gnu++14'] + arg.include_list)
+    unit = index.parse(arg.filepath, ['-nostdinc++', '-x', 'c++', '-std=gnu++17'] + arg.include_list)
 
     act_list = []
     ns_list = []
-    traverse_actor_types(unit.cursor, h_filepath, act_list, ns_list)
+    traverse_actor_types(unit.cursor, arg.filepath, act_list, ns_list)
+
+    cur_autogen_dir = os.path.join(arg.source_dir, "generated", arg.rel_dir)
+    if not os.path.exists(cur_autogen_dir):
+        os.mkdir(cur_autogen_dir)
 
     # generate actor reference header
-    with open(ref_h_filepath, 'w') as fp:
+    autogen_ref_h_filepath = os.path.join(cur_autogen_dir, arg.autogen_ref_h_file)
+    with open(autogen_ref_h_filepath, 'w') as fp:
         fp.write(get_license())
-        fp.write('#include "%s"\n' % arg.h_file)
+        fp.write('#include "%s"\n' % include_path)
         ref_includes = set()
         for act in act_list:
-            if act.base_info.ref_include_path != "":
-                ref_includes.add(act.base_info.ref_include_path)
+            if act.base_info.location_file != "":
+                base_name = os.path.basename(act.base_info.location_file).split(".")[0]
+                base_rel_dir = os.path.dirname(os.path.relpath(act.base_info.location_file, arg.source_dir))
+                ref_includes.add(os.path.join("generated", base_rel_dir, base_name + "_ref.act.autogen.h"))
         for ref_include in ref_includes:
             fp.write('#include "%s"\n' % ref_include)
         for act in act_list:
             ref_class_def = generate_actor_ref_class_def(act)
             write_defs_with_namespace(fp, act.ns_list, ref_class_def)
-    os.chmod(ref_h_filepath, S_IREAD | S_IRGRP | S_IROTH)
+    os.chmod(autogen_ref_h_filepath, S_IREAD | S_IRGRP | S_IROTH)
 
     # generate actor reference method impls
-    with open(cc_filepath, 'w') as fp:
+    autogen_cc_filepath = os.path.join(cur_autogen_dir, arg.autogen_cc_file)
+    with open(autogen_cc_filepath, 'w') as fp:
         fp.write(get_license())
-        fp.write('#include "%s"\n' % arg.ref_h_file)
+        fp.write('#include "%s"\n' % os.path.join("generated", arg.rel_dir, arg.autogen_ref_h_file))
         fp.write('#include <hiactor/core/actor_client.hh>\n')
         fp.write('#include <hiactor/core/actor_factory.hh>\n')
+        fp.write('#include <hiactor/util/data_type.hh>\n')
         for act in act_list:
             actor_method_enum = generate_actor_method_enum(act)
             ref_methods_def = generate_actor_ref_method_defs(act)
@@ -115,29 +126,20 @@ def process_one_actor(arg):
             var_name = get_name_with_namespace(act.name, act.ns_list, "_")
             fp.write(generate_auto_registration(class_name, var_name, act.type_id))
         fp.write("\n} // namespace auto_registration\n")
-    os.chmod(cc_filepath, S_IREAD | S_IRGRP | S_IROTH)
+    os.chmod(autogen_cc_filepath, S_IREAD | S_IRGRP | S_IROTH)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Actor codegen tool.')
-    parser.add_argument('--actor-source-dir', action="store", dest="actor_source_dir",
-                        help="The CXX actor source root dir of your project.")
-    parser.add_argument('--hiactor-include', action="store", dest="hiactor_include",
-                        help="Path of hiactor include/ folder to search for headers")
-    parser.add_argument('--system-include', action="store", dest="sys_include", default="",
-                        help="Semicolon-separated list of paths of other system folder to search for headers.")
-    parser.add_argument('--user-include', action="store", dest="user_include", default="",
-                        help="Semicolon-separated list of paths of user-defined folder from your project to search "
-                             "for headers.")
+    parser.add_argument('--source-dir', action="store", dest="source_dir",
+                        help="The source dir of your actor files.")
+    parser.add_argument('--include-paths', action="store", dest="include_paths", default="",
+                        help="Comma-separated list of paths of folders to search for headers.")
     args = parser.parse_args()
 
-    includes = ['-isystem', args.hiactor_include]
-    if len(args.sys_include) > 0:
-        for path in args.sys_include.split(';'):
-            includes.append('-isystem')
-            includes.append(path)
-    if len(args.user_include) > 0:
-        for path in args.user_include.split(';'):
+    includes = []
+    if len(args.include_paths) > 0:
+        for path in args.include_paths.split(','):
             includes.append('-I%s' % path)
 
     status, output = subprocess.getstatusoutput("echo | g++ -xc++ -E -Wp,-v -")
@@ -148,7 +150,7 @@ if __name__ == '__main__':
         if gxx_inc != '' and gxx_inc != '\n':
             includes.append('-I%s' % gxx_inc)
 
-    autogen_dir = os.path.join(args.actor_source_dir, "generated")
+    autogen_dir = os.path.join(args.source_dir, "generated")
     if os.path.exists(autogen_dir):
         shutil.rmtree(autogen_dir)
     os.mkdir(autogen_dir)
@@ -156,26 +158,27 @@ if __name__ == '__main__':
     actg_process_args = []
     act_process_args = []
 
-    for a_dir, _, _ in os.walk(args.actor_source_dir):
+    for a_dir, _, _ in os.walk(args.source_dir):
         for f in os.listdir(a_dir):
             if f.endswith(".actg.h"):
                 actg_name = os.path.basename(f).split(".")[0]
-                actg_h = os.path.relpath(os.path.join(a_dir, f), args.actor_source_dir)
-                actg_autogen_cc = os.path.join("generated", actg_name + ".actg.autogen.cc")
+                actg_autogen_cc_file = actg_name + ".actg.autogen.cc"
+
+                actg_filepath = os.path.join(a_dir, f)
+                actg_rel_dir = os.path.dirname(os.path.relpath(actg_filepath, args.source_dir))
+
                 actg_process_args.append(ActorGroupProcessArgument(
-                    args.actor_source_dir, actg_h, actg_autogen_cc, includes))
+                    actg_filepath, args.source_dir, actg_rel_dir, actg_autogen_cc_file, includes))
             if f.endswith(".act.h"):
                 act_name = os.path.basename(f).split(".")[0]
-                act_h = os.path.relpath(os.path.join(a_dir, f), args.actor_source_dir)
-                act_ref_h = os.path.join("generated", act_name + "_ref.act.autogen.h")
-                act_autogen_cc = os.path.join("generated", act_name + ".act.autogen.cc")
-                act_process_args.append(ActorProcessArgument(
-                    args.actor_source_dir, act_h, act_ref_h, act_autogen_cc, includes))
+                act_autogen_ref_h_file = act_name + "_ref.act.autogen.h"
+                act_autogen_cc_file = act_name + ".act.autogen.cc"
 
-    def get_key(item):
-        return item.h_file
-    actg_process_args = sorted(actg_process_args, key=get_key)
-    act_process_args = sorted(act_process_args, key=get_key)
+                act_filepath = os.path.join(a_dir, f)
+                act_rel_dir = os.path.dirname(os.path.relpath(act_filepath, args.source_dir))
+
+                act_process_args.append(ActorProcessArgument(
+                    act_filepath, args.source_dir, act_rel_dir, act_autogen_ref_h_file, act_autogen_cc_file, includes))
 
     if len(actg_process_args) > 0:
         process_actor_groups(actg_process_args)

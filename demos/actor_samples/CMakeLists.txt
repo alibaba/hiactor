@@ -13,10 +13,8 @@
 # limitations under the License.
 
 hiactor_codegen (actor-autogen actor_sample_gen_files
-  ACTOR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-  HIACTOR_INCLUDE ${CMAKE_SOURCE_DIR}/include
-  SYSTEM_INCLUDE ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/include
-  USER_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+  INCLUDE_PATHS ${CMAKE_SOURCE_DIR}/include,${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/include,${CMAKE_CURRENT_SOURCE_DIR})
 
 hiactor_add_demo (simple_actor_sample
   SOURCES
@@ -24,8 +22,8 @@ hiactor_add_demo (simple_actor_sample
     actor/item_store.h
     actor/items.act.h
     actor/items.act.cc
-    generated/items_ref.act.autogen.h
-    generated/items.act.autogen.cc)
+    generated/actor/items_ref.act.autogen.h
+    generated/actor/items.act.autogen.cc)
 
 hiactor_add_demo (actor_scheduling_sample
   SOURCES

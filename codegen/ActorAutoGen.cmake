@@ -23,22 +23,43 @@ add_custom_command (
 add_custom_target (installed_libclang
   DEPENDS ${CLANG_LIB})
 
+function (join_paths joined_path first_path_segment)
+  set (temp_path "${first_path_segment}")
+  foreach (current_segment IN LISTS ARGN)
+    if (NOT ("${current_segment}" STREQUAL ""))
+      if (IS_ABSOLUTE "${current_segment}")
+        set (temp_path "${current_segment}")
+      else ()
+        set (temp_path "${temp_path}/${current_segment}")
+      endif ()
+    endif ()
+  endforeach ()
+  set (${joined_path} "${temp_path}" PARENT_SCOPE)
+endfunction()
+
 function (hiactor_codegen target_name actor_codegen_files)
   cmake_parse_arguments (args ""
-    "ACTOR_SOURCE_DIR;HIACTOR_INCLUDE;SYSTEM_INCLUDE;USER_INCLUDE" "" ${ARGN})
+    "SOURCE_DIR;INCLUDE_PATHS" "" ${ARGN})
 
-  set (CODEGEN_DIR ${args_ACTOR_SOURCE_DIR}/generated)
+  set (CODEGEN_DIR ${args_SOURCE_DIR}/generated)
   set (${actor_codegen_files})
-  file (GLOB_RECURSE ACTOR_ACTG_H ${args_ACTOR_SOURCE_DIR}/*.actg.h)
+  file (GLOB_RECURSE ACTOR_ACTG_H ${args_SOURCE_DIR}/*.actg.h)
   foreach (HEADER ${ACTOR_ACTG_H})
+    file (RELATIVE_PATH REL_PATH ${args_SOURCE_DIR} ${ACTOR_ACTG_H})
+    get_filename_component (REL_DIR ${REL_PATH} DIRECTORY)
     get_filename_component (BASE_NAME ${HEADER} NAME_WE)
-    list (APPEND ${actor_codegen_files} "${CODEGEN_DIR}/${BASE_NAME}.actg.autogen.cc")
+    join_paths (ACTG_CC_GEN_FILE ${CODEGEN_DIR} ${REL_DIR} ${BASE_NAME}.actg.autogen.cc)
+    list (APPEND ${actor_codegen_files} ${ACTG_CC_GEN_FILE})
   endforeach ()
-  file (GLOB_RECURSE ACTOR_ACT_H ${args_ACTOR_SOURCE_DIR}/*.act.h)
+  file (GLOB_RECURSE ACTOR_ACT_H ${args_SOURCE_DIR}/*.act.h)
   foreach (HEADER ${ACTOR_ACT_H})
+    file (RELATIVE_PATH REL_PATH ${args_SOURCE_DIR} ${ACTOR_ACT_H})
+    get_filename_component (REL_DIR ${REL_PATH} DIRECTORY)
     get_filename_component (BASE_NAME ${HEADER} NAME_WE)
-    list (APPEND ${actor_codegen_files} "${CODEGEN_DIR}/${BASE_NAME}_ref.act.autogen.h")
-    list (APPEND ${actor_codegen_files} "${CODEGEN_DIR}/${BASE_NAME}.act.autogen.cc")
+    join_paths (ACT_REF_H_GEN_FILE ${CODEGEN_DIR} ${REL_DIR} ${BASE_NAME}_ref.act.autogen.h)
+    join_paths (ACT_CC_GEN_FILE ${CODEGEN_DIR} ${REL_DIR} ${BASE_NAME}.act.autogen.cc)
+    list (APPEND ${actor_codegen_files} ${ACT_REF_H_GEN_FILE})
+    list (APPEND ${actor_codegen_files} ${ACT_CC_GEN_FILE})
   endforeach ()
 
   set_source_files_properties (${${actor_codegen_files}} PROPERTIES GENERATED TRUE)
@@ -49,15 +70,14 @@ function (hiactor_codegen target_name actor_codegen_files)
     DEPENDS ${ACTOR_ACT_H} ${ACTOR_ACTG_H}
     COMMENT "Generating for actor definition files ..."
     COMMAND python3 actor_codegen.py
-      --actor-source-dir=${args_ACTOR_SOURCE_DIR}
-      --hiactor-include=${args_HIACTOR_INCLUDE}
-      --system-include=${args_SYSTEM_INCLUDE}
-      --user-include=${args_USER_INCLUDE}
+      --source-dir ${args_SOURCE_DIR}
+      --include-paths ${args_INCLUDE_PATHS}
     WORKING_DIRECTORY ${CURRENT_FILE_DIR}
     VERBATIM)
   add_custom_target (${target_name}
     DEPENDS ${${actor_codegen_files}})
-  add_dependencies (${target_name} installed_libclang)
+  add_dependencies (${target_name}
+    installed_libclang)
 
-  include_directories (${args_ACTOR_SOURCE_DIR})
+  include_directories (${args_SOURCE_DIR})
 endfunction ()
