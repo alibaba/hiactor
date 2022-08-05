@@ -66,12 +66,11 @@ function (hiactor_codegen target_name actor_codegen_files)
   set (${actor_codegen_files} ${${actor_codegen_files}} PARENT_SCOPE)
 
   set (PYTHON_FILES
-    actor_codegen.py
-    generator.py
-    traverse.py
-    typedef.py
-    utility.py)
-
+    ${CURRENT_FILE_DIR}/actor_codegen.py
+    ${CURRENT_FILE_DIR}/generator.py
+    ${CURRENT_FILE_DIR}/traverse.py
+    ${CURRENT_FILE_DIR}/typedef.py
+    ${CURRENT_FILE_DIR}/utility.py)
   add_custom_command (
     OUTPUT ${${actor_codegen_files}}
     DEPENDS ${PYTHON_FILES} ${ACTOR_ACT_H} ${ACTOR_ACTG_H}
