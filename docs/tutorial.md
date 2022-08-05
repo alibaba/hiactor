@@ -116,7 +116,7 @@ seastar::future<hiactor::Integer> bank_account::check() {
 Note that there are some rules which should be followed when defining an actor class (in `actor_name.act.h`):
 - A customized actor class must be defined in a c++ header file with the suffix `.act.h`.
 - The annotation `ANNOTATION(actor:impl)` must be specified in actor class definition.
-- A customized actor class must be derived from the template `hiactor::actor` class, the `set_max_concurrency` method
+- A customized actor class must be derived from the base `hiactor::actor` class, the `set_max_concurrency` method
   can be used to set the max [reentrancy concurrency](https://en.wikipedia.org/wiki/Reentrancy_(computing)) of this actor,
   notes that `set_max_concurrency(1)` means disable reentrancy. PS: nested inheritance is allowed:
   you can define an actor class `a` derived from `hiactor::actor` and another actor `b` derived from `a`.
@@ -177,7 +177,7 @@ include ($install_prefix/hiactor_codegen/ActorAutoGen.cmake)
 # actor codegen cmake func
 # @param "actor-autogen": specify the cmake target for actor codegen.
 # @param "actor_gen_files": specify the generated actor definition files.
-# @param "SOURCE_DIR": set the source dir that contains customized actor files.
+# @param "SOURCE_DIR": set the source dir that contains use-defined actor files.
 # @param "INCLUDE_PATHS": set the include directories to search headers with a comma-separated list.
 hiactor_codegen (actor_autogen actor_gen_files
   SOURCE_DIR $my_app_dir
