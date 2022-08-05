@@ -22,8 +22,8 @@ hiactor_add_demo (simple_actor_sample
     actor/item_store.h
     actor/items.act.h
     actor/items.act.cc
-    generated/items_ref.act.autogen.h
-    generated/items.act.autogen.cc)
+    generated/actor/items_ref.act.autogen.h
+    generated/actor/items.act.autogen.cc)
 
 hiactor_add_demo (actor_scheduling_sample
   SOURCES
