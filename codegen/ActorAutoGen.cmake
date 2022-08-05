@@ -45,7 +45,7 @@ function (hiactor_codegen target_name actor_codegen_files)
   set (${actor_codegen_files})
   file (GLOB_RECURSE ACTOR_ACTG_H ${args_SOURCE_DIR}/*.actg.h)
   foreach (HEADER ${ACTOR_ACTG_H})
-    file (RELATIVE_PATH REL_PATH ${args_SOURCE_DIR} ${ACTOR_ACTG_H})
+    file (RELATIVE_PATH REL_PATH ${args_SOURCE_DIR} ${HEADER})
     get_filename_component (REL_DIR ${REL_PATH} DIRECTORY)
     get_filename_component (BASE_NAME ${HEADER} NAME_WE)
     join_paths (ACTG_CC_GEN_FILE ${CODEGEN_DIR} ${REL_DIR} ${BASE_NAME}.actg.autogen.cc)
@@ -53,7 +53,7 @@ function (hiactor_codegen target_name actor_codegen_files)
   endforeach ()
   file (GLOB_RECURSE ACTOR_ACT_H ${args_SOURCE_DIR}/*.act.h)
   foreach (HEADER ${ACTOR_ACT_H})
-    file (RELATIVE_PATH REL_PATH ${args_SOURCE_DIR} ${ACTOR_ACT_H})
+    file (RELATIVE_PATH REL_PATH ${args_SOURCE_DIR} ${HEADER})
     get_filename_component (REL_DIR ${REL_PATH} DIRECTORY)
     get_filename_component (BASE_NAME ${HEADER} NAME_WE)
     join_paths (ACT_REF_H_GEN_FILE ${CODEGEN_DIR} ${REL_DIR} ${BASE_NAME}_ref.act.autogen.h)
@@ -65,9 +65,16 @@ function (hiactor_codegen target_name actor_codegen_files)
   set_source_files_properties (${${actor_codegen_files}} PROPERTIES GENERATED TRUE)
   set (${actor_codegen_files} ${${actor_codegen_files}} PARENT_SCOPE)
 
+  set (PYTHON_FILES
+    actor_codegen.py
+    generator.py
+    traverse.py
+    typedef.py
+    utility.py)
+
   add_custom_command (
     OUTPUT ${${actor_codegen_files}}
-    DEPENDS ${ACTOR_ACT_H} ${ACTOR_ACTG_H}
+    DEPENDS ${PYTHON_FILES} ${ACTOR_ACT_H} ${ACTOR_ACTG_H}
     COMMENT "Generating for actor definition files ..."
     COMMAND python3 actor_codegen.py
       --source-dir ${args_SOURCE_DIR}
