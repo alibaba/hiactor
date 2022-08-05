@@ -13,10 +13,8 @@
 # limitations under the License.
 
 hiactor_codegen (bank-account-autogen bank_account_autogen_files
-  ACTOR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-  HIACTOR_INCLUDE ${CMAKE_SOURCE_DIR}/include
-  SYSTEM_INCLUDE ${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/include
-  USER_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+  INCLUDE_PATHS ${CMAKE_SOURCE_DIR}/include,${Hiactor_BUILD_SEASTAR_SOURCE_DIR}/include,${CMAKE_CURRENT_SOURCE_DIR})
 
 hiactor_add_demo (bank_account_sample
   SOURCES

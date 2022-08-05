@@ -13,9 +13,10 @@
 # limitations under the License.
 
 class ActorGroupProcessArgument:
-    def __init__(self, actor_source_dir, h_file, autogen_cc_file, include_list):
-        self.actor_source_dir = actor_source_dir
-        self.h_file = h_file
+    def __init__(self, filepath, source_dir, rel_dir, autogen_cc_file, include_list):
+        self.filepath = filepath
+        self.source_dir = source_dir
+        self.rel_dir = rel_dir
         self.autogen_cc_file = autogen_cc_file
         self.include_list = include_list
 
@@ -28,10 +29,11 @@ class ActorGroupCodeGenInfo:
 
 
 class ActorProcessArgument:
-    def __init__(self, actor_source_dir, h_file, ref_h_file, autogen_cc_file, include_list):
-        self.actor_source_dir = actor_source_dir
-        self.h_file = h_file
-        self.ref_h_file = ref_h_file
+    def __init__(self, filepath, source_dir, rel_dir, autogen_ref_h_file, autogen_cc_file, include_list):
+        self.filepath = filepath
+        self.source_dir = source_dir
+        self.rel_dir = rel_dir
+        self.autogen_ref_h_file = autogen_ref_h_file
         self.autogen_cc_file = autogen_cc_file
         self.include_list = include_list
 
@@ -77,10 +79,10 @@ class ActorMethodInfo:
 
 
 class BaseActorInfo:
-    def __init__(self, type_name, is_template, ref_include_path):
+    def __init__(self, type_name, is_template, location_file):
         self.is_template = is_template
         self.type_name = "::" + type_name
-        self.ref_include_path = ref_include_path
+        self.location_file = location_file
 
     def get_actor_name(self):
         if self.is_template:
