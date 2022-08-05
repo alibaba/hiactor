@@ -14,7 +14,7 @@
  */
 
 #include "actor/bank_account.act.h"
-#include "generated/bank_account_ref.act.autogen.h"
+#include "generated/actor/bank_account_ref.act.autogen.h"
 #include <hiactor/core/actor-app.hh>
 #include <seastar/core/print.hh>
 
