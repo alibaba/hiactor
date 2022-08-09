@@ -123,9 +123,10 @@ def process_one_actor(arg: ActorProcessArgument):
             write_defs_with_namespace(fp, act.ns_list, actor_method_enum + ref_methods_def + do_work_def)
         fp.write("\nnamespace auto_registration {\n\n")
         for act in act_list:
-            class_name = get_name_with_namespace(act.name, act.ns_list, "::")
-            var_name = get_name_with_namespace(act.name, act.ns_list, "_")
-            fp.write(generate_auto_registration(class_name, var_name, act.type_id))
+            if not act.is_abstract():
+                class_name = get_name_with_namespace(act.name, act.ns_list, "::")
+                var_name = get_name_with_namespace(act.name, act.ns_list, "_")
+                fp.write(generate_auto_registration(class_name, var_name, act.type_id))
         fp.write("\n} // namespace auto_registration\n")
     os.chmod(autogen_cc_filepath, S_IREAD | S_IRGRP | S_IROTH)
 

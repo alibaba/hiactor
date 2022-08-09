@@ -23,6 +23,7 @@ jobs:
     - name: Install Dependencies
       run: |
         git submodule update --init --recursive
+        sudo apt-get update -y
         sudo ./seastar/seastar/install-dependencies.sh
 
     - name: Configure CMake

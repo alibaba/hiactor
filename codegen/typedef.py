@@ -105,3 +105,9 @@ class ActorCodeGenInfo:
         self.type_id = type_id
         self.methods = methods
         self.base_info = base_info
+
+    def is_abstract(self):
+        for method in self.methods:
+            if method.is_pure_virtual:
+                return True
+        return False
