@@ -93,6 +93,7 @@ def process_one_actor(arg: ActorProcessArgument):
     autogen_ref_h_filepath = os.path.join(cur_autogen_dir, arg.autogen_ref_h_file)
     with open(autogen_ref_h_filepath, 'w') as fp:
         fp.write(get_license())
+        fp.write('#pragma once\n\n')
         fp.write('#include "%s"\n' % include_path)
         ref_includes = set()
         for act in act_list:
