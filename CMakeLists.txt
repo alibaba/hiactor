@@ -104,6 +104,8 @@ if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
 
   message ("-- Applying Seastar patch from Hiactor ...")
   execute_process (
+    COMMAND git config --local user.name hiactor
+    COMMAND git config --local user.email hiactor@alibaba-inc.com
     COMMAND git am -q ${Hiactor_SOURCE_DIR}/seastar/patch/hiactor-hackings.patch
     WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
 endif ()
