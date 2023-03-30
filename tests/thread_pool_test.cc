@@ -23,10 +23,10 @@ using namespace std::chrono_literals;
 HIACTOR_TEST_CASE(thread_pool) {
     return seastar::parallel_for_each(boost::irange<unsigned>(0u, hiactor::local_shard_count()), [] (unsigned id) {
         return seastar::smp::submit_to(id, [id] {
-            return hiactor::thread_resource_pool::submit_work<int>([id] {
+            return hiactor::thread_resource_pool::submit_work([id] {
                 fmt::print("I'm working in resource thread! from reactor {} \n", id);
                 return id * id;
-            }).then_wrapped([id] (seastar::future<int> fut) {
+            }).then_wrapped([id] (seastar::future<unsigned> fut) {
                 try{
                     BOOST_CHECK_EQUAL(id * id, fut.get0());
                 } catch (std::exception& ex) {
