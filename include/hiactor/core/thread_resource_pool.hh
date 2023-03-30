@@ -100,10 +100,10 @@ public:
     static void stop();
     static bool active();
 
-    template <typename T, typename Func>
-    static seastar::future<T> submit_work(Func func) {
+    template <typename Func, typename Ret = typename std::result_of_t<Func()>>
+    static seastar::future<Ret> submit_work(Func func) {
         if (!_active) {
-            return seastar::make_exception_future<T>(std::make_exception_ptr(std::runtime_error(
+            return seastar::make_exception_future<Ret>(std::make_exception_ptr(std::runtime_error(
                 "Thread resource pool is not open. "
                 "Try to add command line parameter \"--open-thread-resource-pool=true\".")));
         }
@@ -116,7 +116,7 @@ public:
                 return seastar::make_ready_future<std::optional<work_thread*>>(std::nullopt);
             });
         }).then([func = std::move(func)](work_thread* wt) {
-            return wt->submit<T>(std::move(func));
+            return wt->submit<Ret>(std::move(func));
         });
     }
 
