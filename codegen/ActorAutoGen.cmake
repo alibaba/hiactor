@@ -14,11 +14,30 @@
 
 set (CURRENT_FILE_DIR ${CMAKE_CURRENT_LIST_DIR})
 
-set (CLANG_LIB ${CURRENT_FILE_DIR}/clang/native/libclang.so)
+if (NOT DEFINED PYTHON_EXECUTABLE)
+  message ("-- No python executable specified, use 'python3' by default.")
+  set (PYTHON_EXECUTABLE python3)
+else ()
+  message ("-- Use '${PYTHON_EXECUTABLE}' as python executable.")
+endif()
+
+if (NOT DEFINED PYTHON_PIP_EXECUTABLE)
+  message ("-- No python-pip executable specified, use 'pip3' by default.")
+  set (PYTHON_PIP_EXECUTABLE pip3)
+  else ()
+  message ("-- Use '${PYTHON_PIP_EXECUTABLE}' as python-pip executable.")
+endif()
+
+execute_process(
+  COMMAND "${PYTHON_EXECUTABLE}" -c "from distutils import sysconfig as sc; print(sc.get_python_lib(plat_specific=True))"
+  OUTPUT_VARIABLE PYTHON_SITE
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set (CLANG_LIB ${PYTHON_SITE}/clang/native/libclang.so)
 add_custom_command (
   OUTPUT ${CLANG_LIB}
   COMMENT "Installing libclang ..."
-  COMMAND pip3 install -t ${CURRENT_FILE_DIR} --upgrade libclang
+  COMMAND ${PYTHON_PIP_EXECUTABLE} install --upgrade libclang
   VERBATIM)
 add_custom_target (installed_libclang
   DEPENDS ${CLANG_LIB})
@@ -75,7 +94,7 @@ function (hiactor_codegen target_name actor_codegen_files)
     OUTPUT ${${actor_codegen_files}}
     DEPENDS ${PYTHON_FILES} ${ACTOR_ACT_H} ${ACTOR_ACTG_H}
     COMMENT "Generating for actor definition files ..."
-    COMMAND python3 actor_codegen.py
+    COMMAND ${PYTHON_EXECUTABLE} actor_codegen.py
       --source-dir ${args_SOURCE_DIR}
       --include-paths ${args_INCLUDE_PATHS}
     WORKING_DIRECTORY ${CURRENT_FILE_DIR}
