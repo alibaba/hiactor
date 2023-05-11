@@ -93,7 +93,7 @@ set (Seastar_DPDK_MACHINE
 
 ## Set seastar dirs
 set (Hiactor_BUILD_SEASTAR_SOURCE_DIR ${Hiactor_BINARY_DIR}/seastar)
-set (Hiactor_BUILD_SEASTAR_BINARY_DIR ${Hiactor_BINARY_DIR}/build/seastar)
+set (Hiactor_BUILD_SEASTAR_BINARY_DIR ${Hiactor_BINARY_DIR}/seastar_build)
 
 ## Copy seastar repo and apply patch
 if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
@@ -156,7 +156,7 @@ if (Hiactor_DPDK)
   list (APPEND CMAKE_PREFIX_PATH ${Hiactor_BINARY_DIR}/dpdk_installed)
 endif ()
 
-add_subdirectory (${Hiactor_BINARY_DIR}/seastar)
+add_subdirectory (${Hiactor_BINARY_DIR}/seastar ${Hiactor_BUILD_SEASTAR_BINARY_DIR})
 
 if (Hiactor_GPU_ENABLE)
   # add compiling source files
