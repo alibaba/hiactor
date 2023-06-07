@@ -28,16 +28,11 @@ if (NOT DEFINED PYTHON_PIP_EXECUTABLE)
   message ("-- Use '${PYTHON_PIP_EXECUTABLE}' as python-pip executable.")
 endif()
 
-execute_process(
-  COMMAND "${PYTHON_EXECUTABLE}" -c "from distutils import sysconfig as sc; print(sc.get_python_lib(plat_specific=True))"
-  OUTPUT_VARIABLE PYTHON_SITE
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-set (CLANG_LIB ${PYTHON_SITE}/clang/native/libclang.so)
+set (CLANG_LIB ${CURRENT_FILE_DIR}/clang/native/libclang.so)
 add_custom_command (
   OUTPUT ${CLANG_LIB}
   COMMENT "Installing libclang ..."
-  COMMAND ${PYTHON_PIP_EXECUTABLE} install --upgrade libclang
+  COMMAND ${PYTHON_PIP_EXECUTABLE} install -t ${CURRENT_FILE_DIR} --upgrade libclang==14.0.6
   VERBATIM)
 add_custom_target (installed_libclang
   DEPENDS ${CLANG_LIB})
