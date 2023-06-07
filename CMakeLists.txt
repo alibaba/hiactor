@@ -62,6 +62,10 @@ set (Hiactor_CXX_FLAGS
   STRING
   "Semicolon-separated list of extra compilation flags for Hiactor itself.")
 
+option (Hiactor_COOK_DEPENDENCIES
+  "Download and build all dependencies by Hiactor."
+  OFF)
+
 # When Hiactor is embedded with `add_subdirectory`, disable the non-library targets.
 if (NOT (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR))
   set (Hiactor_DEMOS OFF)
@@ -156,7 +160,27 @@ if (Hiactor_DPDK)
   list (APPEND CMAKE_PREFIX_PATH ${Hiactor_BINARY_DIR}/dpdk_installed)
 endif ()
 
-add_subdirectory (${Hiactor_BINARY_DIR}/seastar ${Hiactor_BUILD_SEASTAR_BINARY_DIR})
+if (Hiactor_COOK_DEPENDENCIES)
+  set (Hiactor_COOKING_BUILD_DIR ${Hiactor_BINARY_DIR}/cooking_build)
+  set (Hiactor_COOKING_INSTALL_DIR ${Hiactor_BINARY_DIR}/cooking_install)
+
+  if (NOT EXISTS ${Hiactor_COOKING_INSTALL_DIR})
+    if (NOT Hiactor_DPDK)
+      set(cooking_exclude_dpdk "-e dpdk")
+    else ()
+      set(cooking_exclude_dpdk)
+    endif ()
+
+    message ("-- Downloading and cooking dependencies ...")
+    execute_process (
+      COMMAND ./cooking.sh ${cooking_exclude_dpdk} -d ${Hiactor_COOKING_BUILD_DIR} -f ${Hiactor_COOKING_INSTALL_DIR}
+      WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+  endif ()
+
+  set (CMAKE_PREFIX_PATH ${Hiactor_COOKING_INSTALL_DIR})
+endif ()
+
+add_subdirectory (${Hiactor_BUILD_SEASTAR_SOURCE_DIR} ${Hiactor_BUILD_SEASTAR_BINARY_DIR})
 
 if (Hiactor_GPU_ENABLE)
   # add compiling source files
@@ -278,7 +302,7 @@ if (Hiactor_DEBUG)
   add_definitions (-DHIACTOR_DEBUG)
   set (Hiactor_MODE_FLAGS -DDEBUG -g)
 else ()
-  set (Hiactor_MODE_FLAGS -DNDEBUG -O2)
+  set (Hiactor_MODE_FLAGS -DNDEBUG -O3)
 endif ()
 
 target_compile_options (hiactor
@@ -327,6 +351,25 @@ if (Hiactor_INSTALL)
   include (GNUInstallDirs)
   include (CMakePackageConfigHelpers)
   set (install_cmake_dir ${CMAKE_INSTALL_LIBDIR}/cmake/Hiactor)
+
+  # install cooked dependenices
+  if (Hiactor_COOK_DEPENDENCIES)
+    install (
+      DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/include/
+      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install (
+      DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/bin/
+      DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install (
+      DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/sbin/
+      DESTINATION ${CMAKE_INSTALL_SBINDIR})
+    install (
+      DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/lib/
+      DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install (
+      DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/share/
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/share/)
+  endif()
 
   # install include files
   install (
