@@ -66,6 +66,12 @@ option (Hiactor_COOK_DEPENDENCIES
   "Download and build all dependencies by Hiactor."
   OFF)
 
+set (Hiactor_COOK_EXCLUDES
+  ""
+  CACHE
+  STRING
+  "Semicolon-separated list of dependency names to exclude from cooking.")
+
 # When Hiactor is embedded with `add_subdirectory`, disable the non-library targets.
 if (NOT (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR))
   set (Hiactor_DEMOS OFF)
@@ -165,15 +171,21 @@ if (Hiactor_COOK_DEPENDENCIES)
   set (Hiactor_COOKING_INSTALL_DIR ${Hiactor_BINARY_DIR}/cooking_install)
 
   if (NOT EXISTS ${Hiactor_COOKING_INSTALL_DIR})
-    if (NOT Hiactor_DPDK)
-      set(cooking_exclude_dpdk "-e dpdk")
-    else ()
-      set(cooking_exclude_dpdk)
+    set (cooking_excludes)
+    if (Hiactor_COOK_EXCLUDES)
+      foreach (EXCLUDE_DEP ${Hiactor_COOK_EXCLUDES})
+        list (APPEND cooking_excludes "-e ${EXCLUDE_DEP}")
+      endforeach ()
     endif ()
+    if (NOT Hiactor_DPDK)
+      list (APPEND cooking_excludes "-e dpdk")
+    endif ()
+
+    string (REPLACE ";" " " exclude_args "${cooking_excludes}")
 
     message ("-- Downloading and cooking dependencies ...")
     execute_process (
-      COMMAND ./cooking.sh ${cooking_exclude_dpdk} -d ${Hiactor_COOKING_BUILD_DIR} -f ${Hiactor_COOKING_INSTALL_DIR}
+      COMMAND ./cooking.sh -d ${Hiactor_COOKING_BUILD_DIR} -f ${Hiactor_COOKING_INSTALL_DIR} ${exclude_args}
       WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
   endif ()
 
