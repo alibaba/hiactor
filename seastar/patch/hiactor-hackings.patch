@@ -1,4 +1,4 @@
-From 3c143f926a5493148ce8b6d0b73f29860c773b77 Mon Sep 17 00:00:00 2001
+From f1e2268c53c82850395abe710c6ae77b0088a0a0 Mon Sep 17 00:00:00 2001
 From: goldenleaves <houbai.zzc@alibaba-inc.com>
 Date: Wed, 29 Jun 2022 08:41:35 +0000
 Subject: [PATCH] hiactor hackings
@@ -7,13 +7,14 @@ Subject: [PATCH] hiactor hackings
  cooking.sh                         |  2 +-
  cooking_recipe.cmake               |  8 ++++----
  include/seastar/core/future.hh     |  4 +++-
+ include/seastar/core/sharded.hh    | 12 +++++++++---
  include/seastar/core/task.hh       | 26 +++++++++++++++++++++++++-
  include/seastar/net/api.hh         | 21 +++++++++++++++++++++
  include/seastar/net/posix-stack.hh | 12 ++++++++++++
  src/core/reactor.cc                | 23 +++++++++++++++++++----
  src/http/httpd.cc                  |  1 +
  src/net/posix-stack.cc             |  6 ++++++
- 9 files changed, 92 insertions(+), 11 deletions(-)
+ 10 files changed, 101 insertions(+), 14 deletions(-)
 
 diff --git a/cooking.sh b/cooking.sh
 index eb028c09..bb311faf 100755
@@ -22,18 +23,18 @@ index eb028c09..bb311faf 100755
 @@ -931,7 +931,7 @@ if [ -n "${recipe}" ]; then
      # Configure the project, expecting all requirements satisfied.
      #
-
+ 
 -    ${CMAKE} -DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON "${@}" .
 +    # ${CMAKE} -DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON "${@}" .
-
+ 
      #
      # Optionally export the installed files.
 diff --git a/cooking_recipe.cmake b/cooking_recipe.cmake
-index 288ac901..a2418daf 100644
+index 288ac901..04414c80 100644
 --- a/cooking_recipe.cmake
 +++ b/cooking_recipe.cmake
 @@ -121,8 +121,8 @@ cooking_ingredient (numactl
-
+ 
  cooking_ingredient (zlib
    EXTERNAL_PROJECT_ARGS
 -    URL https://zlib.net/zlib-1.2.11.tar.gz
@@ -51,7 +52,7 @@ index 288ac901..a2418daf 100644
 -    URL_MD5 2bba14e6a7f12c7272f87d044e4a7211)
 +    URL https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.3.tar.gz
 +    URL_MD5 b45bf1089a382e81f6b661062c10d0c2)
-
+ 
  ##
  ## Public dependencies.
 diff --git a/include/seastar/core/future.hh b/include/seastar/core/future.hh
@@ -69,14 +70,51 @@ index 81ee1852..d26e043d 100644
      void set_state(future_state&& state) noexcept {
          _state = std::move(state);
      }
+diff --git a/include/seastar/core/sharded.hh b/include/seastar/core/sharded.hh
+index 0df38299..759f136f 100644
+--- a/include/seastar/core/sharded.hh
++++ b/include/seastar/core/sharded.hh
+@@ -438,7 +438,11 @@ class sharded {
+     SEASTAR_CONCEPT(requires std::invocable<Func, Service&, Args&&...>)
+     Ret
+     invoke_on(unsigned id, smp_submit_to_options options, Func&& func, Args&&... args) {
+-        return smp::submit_to(id, options, [this, func = std::forward<Func>(func), args = std::tuple(std::move(args)...)] () mutable {
++        /// hiactor hackings
++        ///
++        /// Change `std::tuple(std::move(args)...)` to `std::tuple{std::move(args)...}` as gcc with low version (<= gcc9)
++        /// cannot deduce template arguments for 'tuple' from ().
++        return smp::submit_to(id, options, [this, func = std::forward<Func>(func), args = std::tuple{std::move(args)...}] () mutable {
+             auto inst = get_local_service();
+             return std::apply(std::forward<Func>(func), std::tuple_cat(std::forward_as_tuple(*inst), std::move(args)));
+         });
+@@ -764,7 +768,8 @@ sharded<Service>::invoke_on_all(smp_submit_to_options options, Func func, Args..
+     static_assert(std::is_same_v<futurize_t<std::invoke_result_t<Func, Service&, Args...>>, future<>>,
+                   "invoke_on_all()'s func must return void or future<>");
+   try {
+-    return invoke_on_all(options, invoke_on_all_func_type([func, args = std::tuple(std::move(args)...)] (Service& service) mutable {
++    /// hiactor hackings
++    return invoke_on_all(options, invoke_on_all_func_type([func, args = std::tuple{std::move(args)...}] (Service& service) mutable {
+         return futurize_apply(func, std::tuple_cat(std::forward_as_tuple(service), args));
+     }));
+   } catch (...) {
+@@ -781,7 +786,8 @@ sharded<Service>::invoke_on_others(smp_submit_to_options options, Func func, Arg
+     static_assert(std::is_same_v<futurize_t<std::invoke_result_t<Func, Service&, Args...>>, future<>>,
+                   "invoke_on_others()'s func must return void or future<>");
+   try {
+-    return invoke_on_all(options, [orig = this_shard_id(), func = std::move(func), args = std::tuple(std::move(args)...)] (Service& s) -> future<> {
++    /// hiactor hackings
++    return invoke_on_all(options, [orig = this_shard_id(), func = std::move(func), args = std::tuple{std::move(args)...}] (Service& s) -> future<> {
+         return this_shard_id() == orig ? make_ready_future<>() : futurize_apply(func, std::tuple_cat(std::forward_as_tuple(s), args));;
+     });
+   } catch (...) {
 diff --git a/include/seastar/core/task.hh b/include/seastar/core/task.hh
 index 37ca56b9..7d3a7c87 100644
 --- a/include/seastar/core/task.hh
 +++ b/include/seastar/core/task.hh
 @@ -27,6 +27,26 @@
-
+ 
  namespace seastar {
-
+ 
 +/// hiactor hacking
 +
 +class task;
@@ -123,9 +161,9 @@ index 6c2048c9..840d0c15 100644
 --- a/include/seastar/net/api.hh
 +++ b/include/seastar/net/api.hh
 @@ -133,6 +133,26 @@ class udp_channel {
-
+ 
  class network_interface_impl;
-
+ 
 +/// hiactor hacking
 +/// customized load balancing policy
 +struct lba_policy {
@@ -147,7 +185,7 @@ index 6c2048c9..840d0c15 100644
 +};
 +
  } /* namespace net */
-
+ 
  /// \addtogroup networking-module
 @@ -292,6 +312,7 @@ class server_socket {
          port,
@@ -174,7 +212,7 @@ index 00fd15ba..5e162850 100644
 +            return cpu;
 +        }
      };
-
+ 
      lw_shared_ptr<load_balancer> _lb;
 @@ -102,6 +110,10 @@ class conntrack {
      handle get_handle(shard_id cpu) {
@@ -185,14 +223,14 @@ index 00fd15ba..5e162850 100644
 +        return handle(_lb->customized_cpu(sa), _lb);
 +    }
  };
-
+ 
  class posix_data_source_impl final : public data_source_impl, private internal::buffer_allocator {
 diff --git a/src/core/reactor.cc b/src/core/reactor.cc
 index 22dc21b1..9fd1364b 100644
 --- a/src/core/reactor.cc
 +++ b/src/core/reactor.cc
 @@ -1103,7 +1103,10 @@ void cpu_stall_detector::update_config(cpu_stall_detector_config cfg) {
-
+ 
  void cpu_stall_detector::maybe_report() {
      if (_reported++ < _max_reports_per_minute) {
 +        /// hiactor hacking
@@ -203,7 +241,7 @@ index 22dc21b1..9fd1364b 100644
  }
  // We use a tick at every timer firing so we can report suppressed backtraces.
 @@ -1154,7 +1157,10 @@ void cpu_stall_detector_posix_timer::arm_timer() {
-
+ 
  void cpu_stall_detector::start_task_run(sched_clock::time_point now) {
      if (now > _rearm_timer_at) {
 +        /// hiactor hacking
@@ -236,26 +274,26 @@ index 22dc21b1..9fd1364b 100644
 @@ -3422,12 +3430,16 @@ future<size_t> readable_eventfd::wait() {
      });
  }
-
+ 
 +/// hiactor hacking
  void schedule(task* t) noexcept {
 -    engine().add_task(t);
 +    auto* ec = t->ec();
 +    (ec == nullptr) ? engine().add_task(t) : ec->add_task(t);
  }
-
+ 
 +/// hiactor hacking
  void schedule_urgent(task* t) noexcept {
 -    engine().add_urgent_task(t);
 +    auto* ec = t->ec();
 +    (ec == nullptr) ? engine().add_urgent_task(t) : ec->add_urgent_task(t);
  }
-
+ 
  }
 @@ -4244,6 +4256,9 @@ bool smp::pure_poll_queues() {
-
+ 
  __thread reactor* local_engine;
-
+ 
 +/// hiactor hacking
 +__thread execution_context* local_ec{nullptr};
 +
@@ -273,15 +311,15 @@ index 774bb84f..1ea29a75 100644
 +    _fd.set_nodelay(true);  /// hiactor hacking
      _server._connections.push_back(*this);
  }
-
+ 
 diff --git a/src/net/posix-stack.cc b/src/net/posix-stack.cc
 index c1d818b1..6b98ba65 100644
 --- a/src/net/posix-stack.cc
 +++ b/src/net/posix-stack.cc
 @@ -74,6 +74,9 @@ namespace net {
-
+ 
  using namespace seastar;
-
+ 
 +/// hiactor hacking
 +std::unique_ptr<lba_policy> customized_lba::impl_{nullptr};
 +
@@ -298,6 +336,6 @@ index c1d818b1..6b98ba65 100644
              default: abort();
              }
          } ();
---
+-- 
 2.34.1
 
