@@ -1,11 +1,11 @@
-From f1e2268c53c82850395abe710c6ae77b0088a0a0 Mon Sep 17 00:00:00 2001
+From a11694a9a31f554a07fcda08b4056e8161f5fac5 Mon Sep 17 00:00:00 2001
 From: goldenleaves <houbai.zzc@alibaba-inc.com>
 Date: Wed, 29 Jun 2022 08:41:35 +0000
 Subject: [PATCH] hiactor hackings
 
 ---
  cooking.sh                         |  2 +-
- cooking_recipe.cmake               |  8 ++++----
+ cooking_recipe.cmake               | 12 ++++++------
  include/seastar/core/future.hh     |  4 +++-
  include/seastar/core/sharded.hh    | 12 +++++++++---
  include/seastar/core/task.hh       | 26 +++++++++++++++++++++++++-
@@ -14,7 +14,7 @@ Subject: [PATCH] hiactor hackings
  src/core/reactor.cc                | 23 +++++++++++++++++++----
  src/http/httpd.cc                  |  1 +
  src/net/posix-stack.cc             |  6 ++++++
- 10 files changed, 101 insertions(+), 14 deletions(-)
+ 10 files changed, 103 insertions(+), 16 deletions(-)
 
 diff --git a/cooking.sh b/cooking.sh
 index eb028c09..bb311faf 100755
@@ -30,7 +30,7 @@ index eb028c09..bb311faf 100755
      #
      # Optionally export the installed files.
 diff --git a/cooking_recipe.cmake b/cooking_recipe.cmake
-index 288ac901..04414c80 100644
+index 288ac901..cea386fe 100644
 --- a/cooking_recipe.cmake
 +++ b/cooking_recipe.cmake
 @@ -121,8 +121,8 @@ cooking_ingredient (numactl
@@ -55,6 +55,17 @@ index 288ac901..04414c80 100644
  
  ##
  ## Public dependencies.
+@@ -280,8 +280,8 @@ cooking_ingredient (dpdk
+ 
+ cooking_ingredient (fmt
+   EXTERNAL_PROJECT_ARGS
+-    URL https://github.com/fmtlib/fmt/archive/5.2.1.tar.gz
+-    URL_MD5 eaf6e3c1b2f4695b9a612cedf17b509d
++    URL https://github.com/fmtlib/fmt/archive/6.1.2.tar.gz
++    URL_MD5 2914e3ac33595103d6b27c87364b034f
+   CMAKE_ARGS
+     -DFMT_DOC=OFF
+     -DFMT_TEST=OFF)
 diff --git a/include/seastar/core/future.hh b/include/seastar/core/future.hh
 index 81ee1852..d26e043d 100644
 --- a/include/seastar/core/future.hh
