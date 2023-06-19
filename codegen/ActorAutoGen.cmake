@@ -34,8 +34,9 @@ add_custom_command (
   COMMENT "Installing libclang ..."
   COMMAND ${PYTHON_PIP_EXECUTABLE} install -t ${CURRENT_FILE_DIR} --upgrade libclang==14.0.6
   VERBATIM)
-add_custom_target (installed_libclang
-  DEPENDS ${CLANG_LIB})
+if (NOT TARGET installed_libclang)
+  add_custom_target (installed_libclang DEPENDS ${CLANG_LIB})
+endif()
 
 function (join_paths joined_path first_path_segment)
   set (temp_path "${first_path_segment}")
