@@ -322,11 +322,11 @@ target_compile_options (hiactor
     -std=${Hiactor_CXX_DIALECT}
     ${Hiactor_MODE_FLAGS})
 
-target_link_libraries (hiactor
-  PUBLIC
-    seastar
-  PRIVATE
-    stdc++fs)
+target_link_libraries (hiactor PUBLIC seastar)
+
+if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+  target_link_libraries (hiactor PRIVATE stdc++fs)
+endif ()
 
 if (Hiactor_GPU_ENABLE)
   target_link_libraries (hiactor PUBLIC cuda_kernels)
