@@ -157,8 +157,8 @@ network_channel::routing_table::~routing_table() {
 inline
 void network_channel::routing_table::build(std::vector<std::vector<uint32_t>>& sharded_mids) {
     assert(uint32_t(sharded_mids.size()) == local_shard_count());
-    // layout: size, shard id 1, shard id 2, ...
-    _cell_size = 1 + local_shard_count();
+    // layout: size, cur_pos, shard id 1, shard id 2, ...
+    _cell_size = 2 + local_shard_count();
     auto& nc_inst = network_config::get();
     auto num_g_shards = global_shard_count();
     auto num_machs = nc_inst.num_machines();
@@ -176,8 +176,9 @@ void network_channel::routing_table::build(std::vector<std::vector<uint32_t>>& s
     // init cells.
     for (uint32_t i = 0; i < num_machs; ++i) {
         auto* cell_ptr = _cells_head + _cell_size * i;
-        // cell[0]: size
+        // cell[0]: size, cell[1]: cur_pos
         cell_ptr[0] = 0;
+        cell_ptr[1] = 2;
     }
 
     for (uint32_t i = 0; i < local_shard_count(); ++i) {
@@ -192,17 +193,23 @@ network_channel::dest_info network_channel::routing_table::get_destination(uint3
     network_channel::dest_info di{0, 0};
     di.machine_id = _sid2mid[g_shard_id];
     auto* cell_ptr = _cells_head + _cell_size * di.machine_id;
-    // get target pos.
-    auto pos = g_shard_id % cell_ptr[0] + 1;
+#ifdef HIACTOR_ROUND_ROUBIN_NETWORK_PROXY
+    // Round-robin for avaiable shard.
+    di.target_sid = cell_ptr[cell_ptr[1]];
+    cell_ptr[1] = (cell_ptr[1] + 1) % cell_ptr[0] + 2;
+#else
+    // Use fixed proxy shard to enable FIFO network message.
+    auto pos = g_shard_id % cell_ptr[0] + 2;
     di.target_sid = cell_ptr[pos];
+#endif
     return di;
 }
 
 inline
 void network_channel::routing_table::insert(uint32_t mach_id, uint32_t local_sid) {
     auto* cell_ptr = _cells_head + _cell_size * mach_id;
-    // cell[0]: size
-    cell_ptr[cell_ptr[0] + 1] = local_sid;
+    // cell[0]: size, cell[1]: cur_pos
+    cell_ptr[cell_ptr[0] + 2] = local_sid;
     ++cell_ptr[0];
 }
 
