@@ -193,10 +193,15 @@ network_channel::dest_info network_channel::routing_table::get_destination(uint3
     network_channel::dest_info di{0, 0};
     di.machine_id = _sid2mid[g_shard_id];
     auto* cell_ptr = _cells_head + _cell_size * di.machine_id;
-    // cell[0]: size, cell[1]: cur_pos
+#ifdef HIACTOR_ROUND_ROUBIN_NETWORK_PROXY
+    // Round-robin for avaiable shard.
     di.target_sid = cell_ptr[cell_ptr[1]];
-    // round-robin for avaiable shard.
     cell_ptr[1] = (cell_ptr[1] + 1) % cell_ptr[0] + 2;
+#else
+    // Use fixed proxy shard to enable FIFO network message.
+    auto pos = g_shard_id % cell_ptr[0] + 2;
+    di.target_sid = cell_ptr[pos];
+#endif
     return di;
 }
 

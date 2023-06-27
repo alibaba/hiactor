@@ -72,6 +72,10 @@ set (Hiactor_COOK_EXCLUDES
   STRING
   "Semicolon-separated list of dependency names to exclude from cooking.")
 
+option (Hiactor_FIFO_NETWORK_MESSAGE
+  "Ensure actor message cross network to be FIFO, which may cause unbalanced network load between shards."
+  ON)
+
 # When Hiactor is embedded with `add_subdirectory`, disable the non-library targets.
 if (NOT (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR))
   set (Hiactor_DEMOS OFF)
@@ -311,7 +315,8 @@ else ()
 endif ()
 
 if (Hiactor_DEBUG)
-  add_definitions (-DHIACTOR_DEBUG)
+  target_compile_definitions (hiactor
+    PRIVATE HIACTOR_DEBUG)
   set (Hiactor_MODE_FLAGS -DDEBUG -g)
 else ()
   set (Hiactor_MODE_FLAGS -DNDEBUG -O3)
@@ -330,6 +335,11 @@ endif ()
 
 if (Hiactor_GPU_ENABLE)
   target_link_libraries (hiactor PUBLIC cuda_kernels)
+endif ()
+
+if (NOT Hiactor_FIFO_NETWORK_MESSAGE)
+  target_compile_definitions (hiactor
+    PRIVATE HIACTOR_ROUND_ROUBIN_NETWORK_PROXY)
 endif ()
 
 ## hiactor private interface
