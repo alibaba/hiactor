@@ -66,6 +66,10 @@ option (Hiactor_COOK_DEPENDENCIES
   "Download and build all dependencies by Hiactor."
   OFF)
 
+option (Hiactor_COOK_DEPENDENCIES_ALL_STATIC
+  "Cook all dependencies as static libraries."
+  OFF)
+
 set (Hiactor_COOK_EXCLUDES
   ""
   CACHE
@@ -122,6 +126,13 @@ if (NOT EXISTS ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
     COMMAND git config --local user.email hiactor@alibaba-inc.com
     COMMAND git am -q ${Hiactor_SOURCE_DIR}/seastar/patch/hiactor-hackings.patch
     WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+  if (Hiactor_COOK_DEPENDENCIES_ALL_STATIC)
+    execute_process (
+      COMMAND git config --local user.name hiactor
+      COMMAND git config --local user.email hiactor@alibaba-inc.com
+      COMMAND git am -q ${Hiactor_SOURCE_DIR}/seastar/patch/cooking-deps-all-static.patch
+      WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+  endif ()
 endif ()
 
 if (Hiactor_DPDK)
@@ -191,6 +202,11 @@ if (Hiactor_COOK_DEPENDENCIES)
     execute_process (
       COMMAND ./cooking.sh -d ${Hiactor_COOKING_BUILD_DIR} -f ${Hiactor_COOKING_INSTALL_DIR} ${exclude_args}
       WORKING_DIRECTORY ${Hiactor_BUILD_SEASTAR_SOURCE_DIR})
+    if (Hiactor_COOK_DEPENDENCIES_ALL_STATIC)
+      execute_process (
+        COMMAND bash -c "rm -f lib*.so*"
+        WORKING_DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/lib)
+    endif ()
   endif ()
 
   set (CMAKE_PREFIX_PATH ${Hiactor_COOKING_INSTALL_DIR})
