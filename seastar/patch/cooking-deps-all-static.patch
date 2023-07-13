@@ -1,0 +1,132 @@
+From d92eb709be6200f5c75fa89161c37a715abdac3f Mon Sep 17 00:00:00 2001
+From: Zichao Zhang <everlight.tomorrow@gmail.com>
+Date: Tue, 11 Jul 2023 16:15:18 +0800
+Subject: [PATCH] hiactor hackings: Cooking all dependencies with static
+ libraries
+
+---
+ cooking_recipe.cmake | 25 +++++++++++++++----------
+ 1 file changed, 15 insertions(+), 10 deletions(-)
+
+diff --git a/cooking_recipe.cmake b/cooking_recipe.cmake
+index cea386fe..ff4869ea 100644
+--- a/cooking_recipe.cmake
++++ b/cooking_recipe.cmake
+@@ -69,7 +69,7 @@ cooking_ingredient (gmp
+   EXTERNAL_PROJECT_ARGS
+     URL https://gmplib.org/download/gmp/gmp-6.1.2.tar.bz2
+     URL_MD5 8ddbb26dc3bd4e2302984debba1406a5
+-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR> ${info_dir}/gmp
++    CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-static=yes --enable-shared=no --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR> ${info_dir}/gmp
+     BUILD_COMMAND <DISABLE>
+     INSTALL_COMMAND ${make_command} install)
+
+@@ -83,7 +83,7 @@ cooking_ingredient (colm
+     URL_MD5 16aaf566cbcfe9a06154e094638ac709
+     # This is upsetting.
+     BUILD_IN_SOURCE YES
+-    CONFIGURE_COMMAND ./configure --prefix=<INSTALL_DIR>
++    CONFIGURE_COMMAND ./configure --enable-static=yes --enable-shared=no --prefix=<INSTALL_DIR>
+     BUILD_COMMAND <DISABLE>
+     INSTALL_COMMAND ${make_command} install)
+
+@@ -91,7 +91,7 @@ cooking_ingredient (libpciaccess
+   EXTERNAL_PROJECT_ARGS
+     URL https://www.x.org/releases/individual/lib/libpciaccess-0.13.4.tar.gz
+     URL_MD5 cc1fad87da60682af1d5fa43a5da45a4
+-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
++    CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-static=yes --enable-shared=no --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
+     BUILD_COMMAND <DISABLE>
+     INSTALL_COMMAND ${make_command} install)
+
+@@ -102,6 +102,7 @@ cooking_ingredient (nettle
+     URL_MD5 dc0f13028264992f58e67b4e8915f53d
+     CONFIGURE_COMMAND
+       <SOURCE_DIR>/configure
++      --disable-shared
+       --prefix=<INSTALL_DIR>
+       --srcdir=<SOURCE_DIR>
+       --libdir=<INSTALL_DIR>/lib
+@@ -115,7 +116,7 @@ cooking_ingredient (numactl
+   EXTERNAL_PROJECT_ARGS
+     URL https://github.com/numactl/numactl/releases/download/v2.0.12/numactl-2.0.12.tar.gz
+     URL_MD5 2ba9777d78bfd7d408a387e53bc33ebc
+-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
++    CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-static=yes --enable-shared=yes --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
+     BUILD_COMMAND <DISABLE>
+     INSTALL_COMMAND ${make_command} install)
+
+@@ -123,7 +124,7 @@ cooking_ingredient (zlib
+   EXTERNAL_PROJECT_ARGS
+     URL https://zlib.net/zlib-1.2.13.tar.gz
+     URL_MD5 9b8aa094c4e5765dabf4da391f00d15c
+-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR>
++    CONFIGURE_COMMAND <SOURCE_DIR>/configure --static --prefix=<INSTALL_DIR>
+     BUILD_COMMAND <DISABLE>
+     INSTALL_COMMAND ${make_command} install)
+
+@@ -149,7 +150,7 @@ cooking_ingredient (Boost
+       --build-dir=<BINARY_DIR>
+       install
+       variant=debug
+-      link=shared
++      link=static
+       threading=multi
+       hardcode-dll-paths=true
+       dll-path=<INSTALL_DIR>/lib)
+@@ -164,6 +165,8 @@ cooking_ingredient (GnuTLS
+     CONFIGURE_COMMAND
+      ${CMAKE_COMMAND} -E env ${PKG_CONFIG_PATH}
+       <SOURCE_DIR>/configure
++      --enable-static=yes
++      --enable-shared=no
+       --prefix=<INSTALL_DIR>
+       --srcdir=<SOURCE_DIR>
+       --with-included-unistring
+@@ -183,7 +186,7 @@ cooking_ingredient (hwloc
+   EXTERNAL_PROJECT_ARGS
+     URL https://download.open-mpi.org/release/hwloc/v2.2/hwloc-2.2.0.tar.gz
+     URL_MD5 762c93cdca3249eed4627c4a160192bd
+-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
++    CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-static=yes --enable-shared=no --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
+     BUILD_COMMAND <DISABLE>
+     INSTALL_COMMAND ${make_command} install)
+
+@@ -210,7 +213,7 @@ cooking_ingredient (lksctp-tools
+     URL https://sourceforge.net/projects/lksctp/files/lksctp-tools/lksctp-tools-1.0.16.tar.gz
+     URL_MD5 708bb0b5a6806ad6e8d13c55b067518e
+     PATCH_COMMAND ./bootstrap
+-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
++    CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-static=yes --enable-shared=no --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
+     BUILD_COMMAND <DISABLE>
+     INSTALL_COMMAND ${make_command} install)
+
+@@ -218,7 +221,7 @@ cooking_ingredient (yaml-cpp
+   REQUIRES Boost
+   CMAKE_ARGS
+     -DYAML_CPP_BUILD_TESTS=OFF
+-    -DBUILD_SHARED_LIBS=ON
++    -DBUILD_SHARED_LIBS=OFF
+   EXTERNAL_PROJECT_ARGS
+     URL https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.3.tar.gz
+     URL_MD5 b45bf1089a382e81f6b661062c10d0c2)
+@@ -231,13 +234,15 @@ cooking_ingredient (c-ares
+   EXTERNAL_PROJECT_ARGS
+     URL https://c-ares.haxx.se/download/c-ares-1.13.0.tar.gz
+     URL_MD5 d2e010b43537794d8bedfb562ae6bba2
+-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
++    CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-static=yes --enable-shared=no --prefix=<INSTALL_DIR> --srcdir=<SOURCE_DIR>
+     BUILD_COMMAND <DISABLE>
+     INSTALL_COMMAND ${make_command} install)
+
+ cooking_ingredient (cryptopp
+   CMAKE_ARGS
+     -DCMAKE_INSTALL_LIBDIR=<INSTALL_DIR>/lib
++    -DBUILD_STATIC=ON
++    -DBUILD_SHARED=OFF
+     -DBUILD_TESTING=OFF
+   EXTERNAL_PROJECT_ARGS
+     URL https://github.com/weidai11/cryptopp/archive/CRYPTOPP_5_6_5.tar.gz
+--
+2.34.1
+
