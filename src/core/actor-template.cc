@@ -235,6 +235,7 @@ void actor::run_and_dispose() noexcept {
                         } else if (state.get()) {
                             dynamic_cast<actor_base*>(_ec)->stop_child_actor(_address, true);
                         }
+                        activate();
                     };
                     using continuationized_func =
                     continuation<std::function<void(const seastar::future_state<stop_reaction>&)>, stop_reaction>;
@@ -250,6 +251,7 @@ void actor::run_and_dispose() noexcept {
                 } else if (result_f.get0() == stop_reaction::yes) {
                     dynamic_cast<actor_base*>(_ec)->stop_child_actor(_address, true);
                 }
+                activate();
                 break;
             }
             case message_type::PEACE_STOP : {
