@@ -327,6 +327,5 @@ void allocate_actor_engine() {
 }
 
 __thread root_actor_group* local_actor_engine{nullptr};
-__thread actor_base* local_execution_context = nullptr;
 
 } // namespace hiactor

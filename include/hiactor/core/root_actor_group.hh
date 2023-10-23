@@ -90,7 +90,6 @@ private:
 };
 
 extern __thread root_actor_group* local_actor_engine;
-extern __thread actor_base* local_execution_context;
 
 void allocate_actor_engine();
 
@@ -100,13 +99,13 @@ root_actor_group& actor_engine() {
 }
 
 inline
-void set_local_execution_context(actor_base* exec_ctx) {
-    local_execution_context = exec_ctx;
+void set_local_execution_context(seastar::execution_context* exec_ctx) {
+    seastar::set_local_ec(exec_ctx);
 }
 
 inline
-actor_base* get_local_execution_ctx() {
-    return local_execution_context;
+seastar::execution_context* get_local_execution_ctx() {
+    return seastar::get_local_ec();
 }
 
 } // namespace hiactor
