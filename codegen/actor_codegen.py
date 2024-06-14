@@ -34,6 +34,19 @@ def process_actor_groups(process_args):
     p.close()
     p.join()
 
+def check_diagnostics_and_print(unit):
+    if unit.diagnostics:
+        parse_success = False
+        for diag in unit.diagnostics:
+            if diag.severity > clang.cindex.Diagnostic.Warning:
+                print(f"Error: {diag.spelling}")
+                print(f"  File: {diag.location.file.name}")
+                print(f"  Line: {diag.location.line}")
+                print(f"  Column: {diag.location.column}")
+                print(f"  Severity: {diag.severity}")
+    else:
+        parse_success = True
+    return parse_success
 
 def process_one_actor_group(arg: ActorGroupProcessArgument):
     include_path = os.path.relpath(arg.filepath, arg.source_dir)
@@ -41,6 +54,9 @@ def process_one_actor_group(arg: ActorGroupProcessArgument):
 
     index = clang.cindex.Index.create()
     unit = index.parse(arg.filepath, ['-nostdinc++', '-x', 'c++', '-std=gnu++17'] + arg.include_list)
+
+    if not check_diagnostics_and_print(unit):
+        raise Exception("Failed to parse %s" % arg.filepath)
 
     actg_list = []
     ns_list = []
@@ -80,6 +96,9 @@ def process_one_actor(arg: ActorProcessArgument):
 
     index = clang.cindex.Index.create()
     unit = index.parse(arg.filepath, ['-nostdinc++', '-x', 'c++', '-std=gnu++17'] + arg.include_list)
+
+    if not check_diagnostics_and_print(unit):
+        raise Exception("Failed to parse %s" % arg.filepath)
 
     act_list = []
     ns_list = []
