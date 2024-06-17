@@ -399,9 +399,6 @@ if (Hiactor_INSTALL)
       DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/bin/
       DESTINATION ${CMAKE_INSTALL_BINDIR})
     install (
-      DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/sbin/
-      DESTINATION ${CMAKE_INSTALL_SBINDIR})
-    install (
       DIRECTORY ${Hiactor_COOKING_INSTALL_DIR}/lib/
       DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install (
